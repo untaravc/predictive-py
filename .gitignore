@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg
+*.egg-info/
+*.manifest
+*.spec
+
+# Virtual environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# FastAPI / Uvicorn logs
+*.log
+
+# SQLite database
+*.db
+*.sqlite3
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build / dist
+build/
+dist/
+*.egg-info/
+
+# Alembic (migrations cache)
+alembic/versions/*.pyc
+alembic/versions/__pycache__/
+
+# Docker
+*.pid
+*.tar
+*.bak
+
+# OS-specific
+.DS_Store
+Thumbs.db
