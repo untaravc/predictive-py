@@ -1,0 +1,7 @@
+services:
+  api:
+    build: .
+    container_name: pse_app
+    restart: always
+    ports:
+        - "8080:8080"

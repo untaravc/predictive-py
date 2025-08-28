@@ -1,40 +1,54 @@
 from app.models.user import User, UserUpdate, UserCreate
 from fastapi import Depends, HTTPException
-from sqlalchemy.orm import Session
-from main import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
+from typing import List, Optional
 
-# Function without decorator
-def read_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    users = db.query(User).offset(skip).limit(limit).all()
-    return [{"id": i.id, "name": i.name, "email": i.email} for i in users]
+from app.main import get_db
 
-def read_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+async def create_user(name: str, email: str, db: AsyncSession = Depends(get_db)):
+    query = text("INSERT INTO users (name, email) VALUES (:name, :email) RETURNING id, name, email")
+    result = await db.execute(query, {"name": name, "email": email})
+    await db.commit()
+    return result.mappings().first()
+
+# READ (list + pagination)
+async def read_users(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
+    query = text("SELECT id, name FROM users ORDER BY id OFFSET :skip LIMIT :limit")
+    result = await db.execute(query, {"skip": skip, "limit": limit})
+    return result.mappings().all()
+
+# READ (single user by ID)
+async def read_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    query = text("SELECT id, name, email FROM users WHERE id = :id")
+    result = await db.execute(query, {"id": user_id})
+    row = result.mappings().first()
+    if not row:
         raise HTTPException(status_code=404, detail="User not found")
-    return {"id": user.id, "name": user.name, "email": user.email}
+    return row
 
-def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
-    user = User(name=user_data.name, email=user_data.email)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return {"id": user.id, "name": user.name, "email": user.email}
-
-def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+# UPDATE
+async def update_user(user_id: int, name: Optional[str], email: Optional[str], db: AsyncSession = Depends(get_db)):
+    query = text("""
+        UPDATE users
+        SET name = COALESCE(:name, name),
+            email = COALESCE(:email, email)
+        WHERE id = :id
+        RETURNING id, name, email
+    """)
+    result = await db.execute(query, {"id": user_id, "name": name, "email": email})
+    await db.commit()
+    row = result.mappings().first()
+    if not row:
         raise HTTPException(status_code=404, detail="User not found")
-    user.name = user_data.name
-    db.commit()
-    db.refresh(user)
+    return row
 
-    return {"id": user.id, "name": user.name}
-
-def delete_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+# DELETE
+async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    query = text("DELETE FROM users WHERE id = :id RETURNING id")
+    result = await db.execute(query, {"id": user_id})
+    await db.commit()
+    row = result.mappings().first()
+    if not row:
         raise HTTPException(status_code=404, detail="User not found")
-    db.delete(user)
-    db.commit()
-    return {"message": f"User {user_id} deleted successfully"}
+    return {"deleted_id": row["id"]}
