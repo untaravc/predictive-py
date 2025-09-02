@@ -5,13 +5,6 @@ import os
 from app.utils.database import Base, get_db
 from app.router import api
 
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
-print("ENV DATABASE_URL: " + DATABASE_URL)
-
 # FastAPI app
 app = FastAPI()
 

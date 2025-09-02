@@ -1,7 +1,23 @@
 services:
-  api:
+  pse_app:
     build: .
     container_name: pse_app
     restart: always
     ports:
         - "8080:8080"
+    environment:
+      DB_HOST: db
+      DB_USER: myuser
+      DB_PASSWORD: mypassword
+      DB_NAME: mydatabase
+  # db:
+  #   image: postgres:17
+  #   container_name: pse_postgres
+  #   environment:
+  #     POSTGRES_USER: pse_user
+  #     POSTGRES_PASSWORD: pse_user123
+  #     POSTGRES_DB: pse
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - ./pgdata:/var/lib/postgresql/data
