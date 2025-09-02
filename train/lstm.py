@@ -24,17 +24,17 @@ INPUT_COLS  = ["SKR1.24VDC VOLTAGE BUSBAR A",
                "SKR1.Current Out To PH",
               #  "SKR1.Current Out To WTP",
               #  "SKR1.DIESEL 1 ACTIVE POWER",
-            #    "SKR1.DIESEL 1 STATOR CURRENT",
+               "SKR1.DIESEL 1 STATOR CURRENT",
                "SKR1.DIESEL 1 STATOR VOLTAGE",
               #  "SKR1.DIESEL 2 ACTIVE POWER",
-            #    "SKR1.DIESEL 2 STATOR CURRENT",
+               "SKR1.DIESEL 2 STATOR CURRENT",
               "SKR1.DIESEL 2 STATOR VOLTAGE",
                "SKR1.LOAD LIMITERPOSITION U 1",
                "SKR1.MDB Voltage Busbar A",
               #  "SKR1.MDB Voltage Busbar B",
               #  "SKR1.REACTIVE PWR UNIT 1",
                "SKR1.REACTIVE PWR UNIT 1 rev",
-            #    "SKR1.REACTIVE POWER U1",
+               "SKR1.REACTIVE POWER U1",
                "SKR1.ROTOR CURR UNIT 1",
               #  "SKR1.ROTOR CURR UNIT 1 rev",
               #  "SKR1.ROTOR VOLT UNIT 1",
@@ -88,8 +88,8 @@ TARGET_COLS = ["SKR1.LO GUIDE BRGOIL TEMP U1",
               #  "SKR1.TURBIN VIBRASI HORIZONTAL",
               #  "SKR1.TURBIN VIBRASI VERTIKAL",
               #  "SKR1.TURBIN VIBRASI AXIAL"]
-TIMESTEPS   = 30            # berapa langkah untuk predict?
-HORIZON     = 5           # predict berapa periode?
+TIMESTEPS   = 10            # berapa langkah untuk predict?
+HORIZON     = 2           # predict berapa periode?
 TEST_FRAC   = 0.15
 VAL_FRAC    = 0.15
 EPOCHS      = 10
@@ -120,13 +120,9 @@ df_train = df.iloc[:n_train]
 df_val   = df.iloc[n_train:n_trainval]
 df_test  = df.iloc[n_trainval:]
 
-
 # --- Normalize (separate scalers for X and y) ---
 scaler_X = StandardScaler().fit(df_train[INPUT_COLS].values)
 scaler_y = StandardScaler().fit(df_train[TARGET_COLS].values)
-
-print(scaler_y)
-sys.exit()
 
 X_train = scaler_X.transform(df_train[INPUT_COLS].values)
 y_train = scaler_y.transform(df_train[TARGET_COLS].values)
@@ -134,8 +130,6 @@ X_val   = scaler_X.transform(df_val[INPUT_COLS].values)
 y_val   = scaler_y.transform(df_val[TARGET_COLS].values)
 X_test  = scaler_X.transform(df_test[INPUT_COLS].values)
 y_test  = scaler_y.transform(df_test[TARGET_COLS].values)
-
-
 
 def build_sequences_multistep(X, y, timesteps, horizon):
     n_samples = X.shape[0] - timesteps - horizon + 1
@@ -183,6 +177,7 @@ cb = [
     callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=4, min_lr=1e-5),
     callbacks.ModelCheckpoint("best_lstm.keras", monitor="val_loss", save_best_only=True),
 ]
+
 
 hist = model.fit(
     Xtr, ytr_flat,
@@ -319,4 +314,3 @@ timestamps = [df.index[-1] + offset*(h+1) for h in range(HORIZON)]
 forecast_df = pd.DataFrame(next_full, index=pd.Index(timestamps, name="timestamp"), columns=TARGET_COLS)
 print("\nForecast :")
 print(forecast_df)
-

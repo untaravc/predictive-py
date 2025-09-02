@@ -1,12 +1,12 @@
 # main.py
 from fastapi import FastAPI, Depends
 import uvicorn
-import os
 from app.utils.database import Base, get_db
 from app.router import api
+from app.services.lifespan_service import lifespan
 
 # FastAPI app
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(api.router)
 
