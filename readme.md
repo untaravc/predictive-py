@@ -22,9 +22,8 @@
     pip install -r requirements.txt
 
 #### Migration V2
-    cd app/migrations
-    python migrate.py up
-    python migrate.py down 
+    python app/migrations/migrate.py up
+    python app/migrations/migrate.py down 
 
 # Feature
 - db connection

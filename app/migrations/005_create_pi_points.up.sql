@@ -1,0 +1,1 @@
+DROP TABLE src_points;

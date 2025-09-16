@@ -62,4 +62,4 @@ alembic/versions/__pycache__/
 Thumbs.db
 
 pgdata/
-train/files/
+storage/

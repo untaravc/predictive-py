@@ -1,7 +1,8 @@
-import psycopg2
 import sys
 import os
 import glob
+import asyncpg
+import asyncio
 
 # Database connection settings
 from dotenv import load_dotenv
@@ -15,49 +16,41 @@ DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 
 db_config = {
-    "dbname": DB_NAME,
+    "database": DB_NAME,
     "user": DB_USER,
     "password": DB_PASSWORD,
     "host": DB_HOST,
-    "port": DB_PORT
+    "port": DB_PORT,
 }
 
-def run_migration(direction):
-    """
-    Execute all migration files in the migrations folder for a given direction.
-    direction: 'up' or 'down'
-    """
+async def run_migration(direction: str):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     migration_path = os.path.join(base_dir, f"*.{direction}.sql")
-
     migration_files = sorted(glob.glob(migration_path))
 
     if not migration_files:
         print(f"⚠️ No migration files found for direction: {direction}")
         return
 
+    conn = None
     try:
-        conn = psycopg2.connect(**db_config)
-        cursor = conn.cursor()
+        conn = await asyncpg.connect(**db_config)
 
         for file_path in migration_files:
             with open(file_path, "r") as f:
                 sql_commands = f.read()
 
             try:
-                cursor.execute(sql_commands)
-                conn.commit()
+                async with conn.transaction():
+                    await conn.execute(sql_commands)
                 print(f"✅ Applied {direction.upper()} migration: {os.path.basename(file_path)}")
             except Exception as e:
-                conn.rollback()
                 print(f"❌ Failed migration {file_path}: {e}")
                 break
-
     finally:
-        if cursor:
-            cursor.close()
         if conn:
-            conn.close()
+            await conn.close()
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -69,4 +62,4 @@ if __name__ == "__main__":
         print("❌ Direction must be 'up' or 'down'")
         sys.exit(1)
 
-    run_migration(direction)
+    asyncio.run(run_migration(direction))

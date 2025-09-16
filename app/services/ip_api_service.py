@@ -1,4 +1,5 @@
 import httpx
+from datetime import datetime
 
 API_TOKEN = "secret-bearer-token"
 
@@ -18,4 +19,7 @@ async def get_external_data(url):
         return {"success": False, "data": data}
     
 async def periodic_call_api_task():
-    print("Persistent cron task executed..")
+    now = datetime.now()
+
+    formatted_time = now.strftime("%Y-%m-%d %H:%M:%S")
+    print("Persistent cron task executed on: " + formatted_time)
