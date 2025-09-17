@@ -1,6 +1,7 @@
 from fastapi import Request
 from app.services.ip_api_service import fetch_data_with_basic_auth
-from app.configs.ind_power_conf import DATA_SERVER_WEB_ID, URL_POINT_SEARCH, URL_STREAM_INTERPOLATED, SAMPLE_WEB_ID, TABLE_SENSORS
+from app.configs.ind_power_conf import DATA_SERVER_WEB_ID, URL_POINT_SEARCH, URL_STREAM_INTERPOLATED, SAMPLE_WEB_ID
+from app.configs.oracle_conf import TABLE_SENSORS
 from app.utils.oracle_db import fetch_one, execute_query
 
 async def point_seach(query: str):
