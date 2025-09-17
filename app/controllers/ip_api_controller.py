@@ -1,18 +1,48 @@
-from app.models.user import User, UserUpdate, UserCreate
-from fastapi import Depends, HTTPException
-from app.services.ip_api_service import get_external_data
-from app.services.pi_webapi import pull_data
+from fastapi import Request
+from app.services.ip_api_service import fetch_data_with_basic_auth
+from app.configs.ind_power_conf import DATA_SERVER_WEB_ID, URL_POINT_SEARCH, URL_STREAM_INTERPOLATED, SAMPLE_WEB_ID
+from app.utils.oracle_db import fetch_one, execute_query
 
+async def point_seach(query: str):
+    base_url = URL_POINT_SEARCH
+    url = base_url +"?dataserverwebid="+DATA_SERVER_WEB_ID+"&query=" + query
 
-async def get_ip_api_data():
-    url = "https://jsonplaceholder.typicode.com/posts"
-    result = await get_external_data(url)
+    response = await fetch_data_with_basic_auth(url)
 
-    return result
+    if(response["success"] == False):
+        return {
+            "success": False,
+            "error": response["error"]
+        }
+    
+    items = response['result']['Items']
 
-async def pull_data_pi():
-    result = await pull_data()
-    return result
+    for i in range(len(items)):
+        # insert to db if not exist
+        has_record = fetch_one("SELECT * FROM PI_POINTS WHERE PI_POINTS.ID = :id", {"id": items[i]["Id"]})
+        if(has_record == None):
+            execute_query(
+                "INSERT INTO PI_POINTS (ID, WEB_ID, NAME, PATH, DESCRIPTOR) VALUES (:id, :web_id, :name, :path, :descriptor)",
+                {"id": items[i]["Id"], "web_id": items[i]["WebId"], "name": items[i]["Name"], "path": items[i]["Path"] ,"descriptor": items[i]["Descriptor"]}
+            )
+        else:
+            execute_query(
+                "UPDATE PI_POINTS SET WEB_ID = :web_id, NAME = :name, PATH = :path, DESCRIPTOR = :descriptor WHERE ID = :id",
+                {"id": items[i]["Id"], "web_id": items[i]["WebId"], "name": items[i]["Name"], "path": items[i]["Path"], "descriptor": items[i]["Descriptor"]}
+            )
 
-async def point_seach():
-    url = "https://piwebapi.plnindonesiapower.co.id/piwebapi/points/search?dataserverwebid=F1DS2dBunJOlC0ifiqTkEvHTBAUEkx&query=SKR1*"
+    return {
+            "success": True,
+            "result": items
+        }
+
+async def point_interpolated(request: Request):
+    query = dict(request.query_params)
+
+    base_url = URL_STREAM_INTERPOLATED
+    url = base_url + "/" + SAMPLE_WEB_ID + "/interpolated?startTime=" + query["startTime"] + "&endTime=" + query["endTime"] + "&interval=" + query["interval"]
+
+    return {
+        "success": True,
+        "result": url
+    }

@@ -23,26 +23,26 @@ def get_connection():
 
 # ---------- Generic query helpers ----------
 def fetch_all(query, params=None):
-	"""Run a SELECT and return all rows"""
+	# Run a SELECT and return all rows
 	with get_connection() as conn:
 		with conn.cursor() as cur:
 			cur.execute(query, params or {})
 			return cur.fetchall()
 
 def fetch_one(query, params=None):
-	"""Run a SELECT and return one row"""
+	# Run a SELECT and return one row
 	with get_connection() as conn:
 		with conn.cursor() as cur:
 			cur.execute(query, params or {})
 			return cur.fetchone()
 
 def execute_query(query, params=None):
-	"""Run INSERT/UPDATE/DELETE and commit"""
+	# Run INSERT/UPDATE/DELETE and commit
 	with get_connection() as conn:
 		with conn.cursor() as cur:
 			cur.execute(query, params or {})
 			conn.commit()
-			return cur.rowcount  # number of affected rows
+			return cur.rowcount
 
 # ---------- Quick test ----------
 def test_connection():

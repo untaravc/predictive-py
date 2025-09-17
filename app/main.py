@@ -11,7 +11,7 @@ from app.utils.oracle_db import fetch_all, fetch_one, execute_query, test_connec
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(api.router)
-test_connection()
+# test_connection()
 
 # Run server
 if __name__ == "__main__":
