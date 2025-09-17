@@ -1,6 +1,0 @@
-CREATE TABLE IF NOT EXISTS sensors (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
-    note VARCHAR(250),
-    status BOOLEAN
-)
