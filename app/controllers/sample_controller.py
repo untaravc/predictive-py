@@ -2,6 +2,12 @@ from fastapi import Request
 from tensorflow import keras
 import numpy as np
 
+async def home():
+    return {
+        "success": True,
+        "result": "Predictive Prescriptive. PSE UGM 2025"
+    }
+
 async def predict_earning(request: Request):
     model = keras.models.load_model("app/trainer/sample/linear_regression_age_earnings.h5", compile=False)
     scaler = np.load("app/trainer/sample/scaler.npz")

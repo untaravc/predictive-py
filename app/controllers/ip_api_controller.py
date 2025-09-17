@@ -1,6 +1,6 @@
 from fastapi import Request
 from app.services.ip_api_service import fetch_data_with_basic_auth
-from app.configs.ind_power_conf import DATA_SERVER_WEB_ID, URL_POINT_SEARCH, URL_STREAM_INTERPOLATED, SAMPLE_WEB_ID
+from app.configs.ind_power_conf import DATA_SERVER_WEB_ID, URL_POINT_SEARCH, URL_STREAM_INTERPOLATED, SAMPLE_WEB_ID, TABLE_SENSORS
 from app.utils.oracle_db import fetch_one, execute_query
 
 async def point_seach(query: str):
@@ -19,15 +19,15 @@ async def point_seach(query: str):
 
     for i in range(len(items)):
         # insert to db if not exist
-        has_record = fetch_one("SELECT * FROM PI_POINTS WHERE PI_POINTS.ID = :id", {"id": items[i]["Id"]})
+        has_record = fetch_one("SELECT * FROM "+ TABLE_SENSORS +" WHERE "+ TABLE_SENSORS +".ID = :id", {"id": items[i]["Id"]})
         if(has_record == None):
             execute_query(
-                "INSERT INTO PI_POINTS (ID, WEB_ID, NAME, PATH, DESCRIPTOR) VALUES (:id, :web_id, :name, :path, :descriptor)",
+                "INSERT INTO "+ TABLE_SENSORS +" (ID, WEB_ID, NAME, PATH, DESCRIPTOR) VALUES (:id, :web_id, :name, :path, :descriptor)",
                 {"id": items[i]["Id"], "web_id": items[i]["WebId"], "name": items[i]["Name"], "path": items[i]["Path"] ,"descriptor": items[i]["Descriptor"]}
             )
         else:
             execute_query(
-                "UPDATE PI_POINTS SET WEB_ID = :web_id, NAME = :name, PATH = :path, DESCRIPTOR = :descriptor WHERE ID = :id",
+                "UPDATE "+ TABLE_SENSORS +" SET WEB_ID = :web_id, NAME = :name, PATH = :path, DESCRIPTOR = :descriptor WHERE ID = :id",
                 {"id": items[i]["Id"], "web_id": items[i]["WebId"], "name": items[i]["Name"], "path": items[i]["Path"], "descriptor": items[i]["Descriptor"]}
             )
 

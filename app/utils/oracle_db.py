@@ -1,5 +1,5 @@
 import oracledb
-from app.configs.oracle_conf import DB_USER, DB_PASSWORD, CONNECT_STRING, WALLET_LOCATION, WALLET_PASSWORD
+from app.configs.oracle_conf import DB_USER, DB_PASSWORD, CONNECT_STRING, WALLET_LOCATION, WALLET_PASSWORD, TABLE_SENSORS
 
 _pool = None  # global pool instance
 
@@ -48,7 +48,7 @@ def execute_query(query, params=None):
 def test_connection():
 	print("Testing connection...")
 	try:
-		result = fetch_one("SELECT * FROM PI_POINTS")
+		result = fetch_one("SELECT * FROM " + TABLE_SENSORS)
 		if result:
 			print(f"Connected successfully! Query result: {result[0]}")
 		else: 
