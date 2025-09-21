@@ -1,4 +1,4 @@
-CREATE TABLE ugm25_records
+CREATE TABLE ugm25_predictions
 (
     id          NUMBER GENERATED ALWAYS AS IDENTITY
         (START WITH 1 INCREMENT BY 1)

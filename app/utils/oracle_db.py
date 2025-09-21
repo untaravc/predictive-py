@@ -23,18 +23,25 @@ def get_connection():
 
 # ---------- Generic query helpers ----------
 def fetch_all(query, params=None):
-	# Run a SELECT and return all rows
-	with get_connection() as conn:
-		with conn.cursor() as cur:
-			cur.execute(query, params or {})
-			return cur.fetchall()
+    # Run a SELECT and return all rows as list of dicts (with field names)
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params or {})
+            columns = [col[0] for col in cur.description]  # extract column names
+            rows = cur.fetchall()
+            return [dict(zip(columns, row)) for row in rows]
+
 
 def fetch_one(query, params=None):
-	# Run a SELECT and return one row
-	with get_connection() as conn:
-		with conn.cursor() as cur:
-			cur.execute(query, params or {})
-			return cur.fetchone()
+    # Run a SELECT and return one row as a dict (with field names)
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params or {})
+            row = cur.fetchone()
+            if row is None:
+                return None
+            columns = [col[0] for col in cur.description]
+            return dict(zip(columns, row))
 
 def execute_query(query, params=None):
 	# Run INSERT/UPDATE/DELETE and commit

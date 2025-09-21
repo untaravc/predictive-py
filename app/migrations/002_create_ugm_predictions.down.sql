@@ -1,0 +1,1 @@
+DROP TABLE ugm25_predictions;
