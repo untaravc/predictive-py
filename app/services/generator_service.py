@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import random
 from app.utils.oracle_db import execute_query, fetch_all
-from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS
+from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTIONS
 from app.repo.normal_value import normal_value_unit3, normal_value_unit1
 
 async def run_generator():
@@ -13,9 +13,9 @@ async def run_generator():
         if(sensor["NORMAL_VALUE"] == None):
             continue
 
-        data_generate = await generate_values("2025-09-01 00:00:00", "2025-09-02 00:00:00", 5, sensor["NORMAL_VALUE"])
+        data_generate = await generate_values("2025-09-12 00:00:00", "2025-09-20 00:00:00", 5, sensor["NORMAL_VALUE"])
 
-        query, params = build_merge_query(TABLE_RECORDS, sensor["ID"], data_generate['data'])
+        query, params = build_merge_query(TABLE_PREDICTIONS, sensor["ID"], data_generate['data'])
 
         execute_query(query, params)
 

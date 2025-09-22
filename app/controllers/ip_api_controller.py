@@ -1,9 +1,13 @@
 from fastapi import Request
 from app.services.ip_api_service import fetch_data_with_basic_auth
 from app.configs.ind_power_conf import DATA_SERVER_WEB_ID, URL_POINT_SEARCH, URL_STREAM_INTERPOLATED
-from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS
+from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTIONS
 from app.utils.oracle_db import fetch_one, execute_query, fetch_all
 from app.services.generator_service import run_generator, set_normal_values
+from app.services.unit3_service import run_unit3_lstm
+from tensorflow import keras
+import numpy as np
+from collections import defaultdict
 
 async def point_seach(query: str):
     base_url = URL_POINT_SEARCH
@@ -160,6 +164,83 @@ async def generate_value_record():
 
 async def set_normal_value():
     result = set_normal_values()
+    return {
+        "success": True,
+        "result": result
+    }
+
+async def consume_unit3_lstm():
+
+    result = await run_unit3_lstm()
+
+    for t, time in enumerate(result['timestamps']):
+        for c, col in enumerate(result['columns']):
+            val = result['values'][t][c]
+            print(time, col, val)
+
+    return {
+        "success": True,
+        "result": result
+    }
+
+async def sensor_list(request: Request):
+    query = "SELECT * FROM "+ TABLE_SENSORS
+
+    if(request.query_params.get("q") != None):
+        query += " WHERE NAME like :q"
+        q = request.query_params.get("q")
+        sensors = fetch_all(query, {"q": q})
+    else:
+        sensors = fetch_all(query)
+
+    return {
+        "success": True,
+        "result": sensors
+    }
+
+async def predictions(request: Request):
+    query = "SELECT p.SENSOR_ID, p.RECORD_TIME, p.VALUE, s.NAME FROM "+ TABLE_PREDICTIONS + " p left join "+ TABLE_SENSORS +" s on p.SENSOR_ID = s.ID"
+
+    query_where = []
+    # if(request.query_params.get("sensorId") != None):
+    #     query_where.append("sensor_id = :sensorId")
+
+    if(request.query_params.get("startTime") != None):
+        query_where.append("p.record_time >= TO_TIMESTAMP_TZ(:startTime, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')")
+
+    if(request.query_params.get("endTime") != None):
+        query_where.append("p.record_time <= TO_TIMESTAMP_TZ(:endTime, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')")
+
+    if(request.query_params.get("sensorIds") != None):
+        query_where.append("p.sensor_id IN (" + request.query_params.get("sensorIds") + ")")
+
+    if(len(query_where) > 0):
+        query += " WHERE " + " AND ".join(query_where)
+
+    predictions = fetch_all(query, {
+        # "sensorId": request.query_params.get("sensorId"),
+        "startTime": request.query_params.get("startTime"),
+        "endTime": request.query_params.get("endTime")
+    })
+
+    # group by RECORD_TIME
+    grouped = defaultdict(list)
+
+    for item in predictions:
+        grouped[item["RECORD_TIME"]].append({
+            "SENSOR_ID": item["SENSOR_ID"],
+            "VALUE": item["VALUE"],
+            "NAME": item["NAME"]
+        })
+
+# restructure
+    result = []
+    for time, sensors in grouped.items():
+        result.append({
+            "RECORD_TIME": time,
+            "DATA": sensors
+        })
+    
     return {
         "success": True,
         "result": result
