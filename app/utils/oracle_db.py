@@ -44,12 +44,18 @@ def fetch_one(query, params=None):
             return dict(zip(columns, row))
 
 def execute_query(query, params=None):
-	# Run INSERT/UPDATE/DELETE and commit
-	with get_connection() as conn:
-		with conn.cursor() as cur:
-			cur.execute(query, params or {})
-			conn.commit()
-			return cur.rowcount
+	
+	try:
+		with get_connection() as conn:
+			with conn.cursor() as cur:
+				cur.execute(query, params or {})
+				conn.commit()
+				return cur.rowcount
+	except Exception as e:
+		print("❌ Error executing query")
+		print("Query:\n", query)
+		print("Params:", params)
+		raise
 
 # ---------- Quick test ----------
 def test_connection():

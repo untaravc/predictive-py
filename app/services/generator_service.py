@@ -1,25 +1,58 @@
 from datetime import datetime, timedelta
 import random
-from app.utils.oracle_db import execute_query, fetch_all
+from app.utils.oracle_db import execute_query, fetch_all, fetch_one
 from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTIONS
-from app.repo.normal_value import normal_value_unit3, normal_value_unit1
+from app.statics.normal_value import normal_value_unit1, normal_value_unit3
 
-async def run_generator():
+SENSOR_NAME_QUERY = "SKR1%"
+async def run_generator_record(sensor_id: int, date_from: str = None, date_to: str = None, period: int = None):
+    now = datetime.now()
+    if(date_from == None):
+        date_from = now.strftime("%Y-%m-%d 00:00:00")
+    if(date_to == None):
+        date_to = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    if(period == None):
+        period = 60
+
     # get sensors
-    sensors = fetch_all("SELECT ID, NORMAL_VALUE FROM "+ TABLE_SENSORS +" WHERE NAME like '%SKR1%'")
+    sensor = fetch_one("SELECT ID, NORMAL_VALUE FROM "+ TABLE_SENSORS +" WHERE ID = :id", {"id": sensor_id})
+
+    if(sensor["NORMAL_VALUE"] == None):
+        return sensor
+
+    data_generate = await generate_values(date_from, date_to, period, sensor["NORMAL_VALUE"])
+    print(data_generate)
+
+    query, params = build_merge_query(TABLE_RECORDS, sensor["ID"], data_generate['data'])
+
+    execute_query(query, params)
+
+    return sensor
+
+async def run_generator_predict(date_from: str = None, date_to: str = None, period: int = None):
+    now = datetime.now()
+    if(date_from == None):
+        date_from = now.strftime("%Y-%m-%d 00:00:00")
+    if(date_to == None):
+        date_to = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    if(period == None):
+        period = 60
+
+    # get sensors
+    sensors = fetch_all("SELECT ID, NORMAL_VALUE FROM "+ TABLE_SENSORS +" WHERE NAME like +'" + SENSOR_NAME_QUERY + "'")
 
     for sensor in sensors:
-
         if(sensor["NORMAL_VALUE"] == None):
-            continue
+            return sensor
 
-        data_generate = await generate_values("2025-09-12 00:00:00", "2025-09-20 00:00:00", 5, sensor["NORMAL_VALUE"])
+        data_generate = await generate_values(date_from, date_to, period, sensor["NORMAL_VALUE"])
 
         query, params = build_merge_query(TABLE_PREDICTIONS, sensor["ID"], data_generate['data'])
 
+        print(sensor["ID"])
         execute_query(query, params)
 
-    return sensors
+    return sensor
 
 async def generate_values(date_from: str, date_to, period, normal_value: float):
     data = generate_timestamps(date_from, date_to, period, normal_value)
@@ -39,6 +72,7 @@ def generate_timestamps(from_date: str, to_date: str, period: int, normal_value:
     timestamps = []
     current = start
     while current <= end:
+        
         value_applied = random_within_percent(normal_value)
         timestamps.append({
             "Timestamp": current.isoformat(),
@@ -49,6 +83,9 @@ def generate_timestamps(from_date: str, to_date: str, period: int, normal_value:
     return timestamps
 
 def random_within_percent(value: float, percent: int = 10) -> float:
+    if value == None:
+        return 0
+
     lower = value * ((100 - percent) / 100)
     upper = value * ((100 + percent) / 100)
     return round(random.uniform(lower, upper), 2)

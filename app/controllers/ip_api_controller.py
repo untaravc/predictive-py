@@ -3,7 +3,7 @@ from app.services.ip_api_service import fetch_data_with_basic_auth
 from app.configs.ind_power_conf import DATA_SERVER_WEB_ID, URL_POINT_SEARCH, URL_STREAM_INTERPOLATED
 from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTIONS
 from app.utils.oracle_db import fetch_one, execute_query, fetch_all
-from app.services.generator_service import run_generator, set_normal_values
+from app.services.generator_service import run_generator_record, set_normal_values
 from app.services.unit3_service import run_unit3_lstm
 from tensorflow import keras
 import numpy as np
@@ -156,7 +156,7 @@ async def collect_interpolated(request: Request):
             }
 
 async def generate_value_record():
-    result = await run_generator()
+    result = await run_generator_record(146888)
     return {
         "success": True,
         "result": result

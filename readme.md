@@ -1,5 +1,6 @@
 # Documentation
 
+## Run Development Service
 ### create .venv
     python3 -m venv .venv
 
@@ -25,13 +26,11 @@
     python app/migrations/migrate.py up
     python app/migrations/migrate.py down 
 
-# Feature
-- db connection
-- table migration
-- api service
+# WORKFLOW
+- Run Schedule task maker
+- Run Schedule record
+- Run Schedule model
+- Run Schedule upload to pivision
 
-## upcoming
-- data polling
-- runing model
-- graph show
-- cron
+## Environment Set
+- RUN_SCHEDULER="false" -> change to "true" to active schedule function
