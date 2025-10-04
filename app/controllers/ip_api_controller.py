@@ -5,6 +5,9 @@ from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTI
 from app.utils.oracle_db import fetch_one, execute_query, fetch_all
 from app.services.generator_service import run_generator_record, set_normal_values
 from app.services.unit3_service import run_unit3_lstm
+from app.services.unit1_service import run_unit1_lstm
+from app.services.prediksi_unit1 import run_unit1_lstm_final
+from app.services.pi_vision_service import post_prediction_result
 from tensorflow import keras
 import numpy as np
 from collections import defaultdict
@@ -183,6 +186,20 @@ async def consume_unit3_lstm():
         "result": result
     }
 
+async def consume_unit1_lstm():
+    result = await run_unit1_lstm()
+    return {
+        "success": True,
+        "result": result
+    }
+
+async def consume_unit1_lstm_final():
+    result = await run_unit1_lstm_final()
+    return {
+        "success": True,
+        "result": "done"
+    }
+
 async def sensor_list(request: Request):
     query = "SELECT * FROM "+ TABLE_SENSORS
 
@@ -199,6 +216,7 @@ async def sensor_list(request: Request):
     }
 
 async def predictions(request: Request):
+
     query = "SELECT p.SENSOR_ID, p.RECORD_TIME, p.VALUE, s.NAME FROM "+ TABLE_PREDICTIONS + " p left join "+ TABLE_SENSORS +" s on p.SENSOR_ID = s.ID"
 
     query_where = []
@@ -241,6 +259,22 @@ async def predictions(request: Request):
             "DATA": sensors
         })
     
+    return {
+        "success": True,
+        "result": result
+    }
+
+async def access_interpolated_data_ip():
+    # result = await get_interpolated_data()
+
+    return {
+        "success": True,
+        "result": "result"
+    }
+
+async def post_interpolated_data_ip():
+    result = await post_prediction_result()
+
     return {
         "success": True,
         "result": result

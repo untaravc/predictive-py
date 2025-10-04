@@ -40,28 +40,45 @@ async def create_task():
 
     return 'OK'
 
-async def execute_record_sample():
-    tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 2 ROWS ONLY")
+async def execute_record_sample(date_from: str = None, date_to: str = None, period: int = None):
+    if(date_from == None):
+        date_from = datetime.now().strftime("%Y-%m-%d 00:00:00")
+    if(date_to == None):
+        date_to = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    if(period == None):
+        period = 60
 
-    for task in tasks:
-        print("start", task["PARAMS"])
-        await run_generator_record(task["PARAMS"])
-        execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
-        print("end", task["PARAMS"])
+    # Run Over TASK
+    # tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 2 ROWS ONLY")
+    # for task in tasks:
+    #     await run_generator_record(task["PARAMS"])
+    #     execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
 
-    return 'OK'
+    # Run Over SENSORS (Dev Mode)
+    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like +'" + SENSOR_NAME_QUERY + "'")
+    for sensor in sensors:
+        await run_generator_record(sensor["ID"], date_from, date_to, period)
+
+    return 'Record completed'
 
 async def execute_hit_api():
     pass
 
-async def execute_predict_sample():
-    task = fetch_one("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'predict' AND START_AT < SYSDATE")
-    if(task):
-        await run_generator_predict()
-        execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
-        return 'Task completed'
-    else:
-        return 'Task not found'
+async def execute_predict_sample(date_from: str = None, date_to: str = None, period: int = None):
+    if(date_from == None):
+        date_from = datetime.now().strftime("%Y-%m-%d 00:00:00")
+    if(date_to == None):
+        date_to = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    if(period == None):
+        period = 60
+
+    # task = fetch_one("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'predict' AND START_AT < SYSDATE")
+    # if(task):
+    #     await run_generator_predict(date_from, date_to, period)
+    #     execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
+
+    await run_generator_predict(date_from, date_to, period)
+    return 'Predict completed'
 
 async def execute_predict():
     pass

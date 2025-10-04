@@ -21,7 +21,6 @@ async def run_generator_record(sensor_id: int, date_from: str = None, date_to: s
         return sensor
 
     data_generate = await generate_values(date_from, date_to, period, sensor["NORMAL_VALUE"])
-    print(data_generate)
 
     query, params = build_merge_query(TABLE_RECORDS, sensor["ID"], data_generate['data'])
 
@@ -42,14 +41,13 @@ async def run_generator_predict(date_from: str = None, date_to: str = None, peri
     sensors = fetch_all("SELECT ID, NORMAL_VALUE FROM "+ TABLE_SENSORS +" WHERE NAME like +'" + SENSOR_NAME_QUERY + "'")
 
     for sensor in sensors:
+        print("Start sensor ", sensor["ID"])
         if(sensor["NORMAL_VALUE"] == None):
             return sensor
 
         data_generate = await generate_values(date_from, date_to, period, sensor["NORMAL_VALUE"])
 
         query, params = build_merge_query(TABLE_PREDICTIONS, sensor["ID"], data_generate['data'])
-
-        print(sensor["ID"])
         execute_query(query, params)
 
     return sensor
