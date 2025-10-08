@@ -41,6 +41,7 @@ matplotlib==3.10.6
 mdurl==0.1.2
 ml_dtypes==0.5.3
 namex==0.1.0
+narwhals==2.7.0
 numpy==2.3.2
 openpyxl==3.1.5
 opt_einsum==3.4.0
@@ -51,6 +52,7 @@ osisoft.pidevclub.piwebapi==1.1.5
 packaging==25.0
 pandas==2.3.2
 pillow==11.3.0
+plotly==6.3.1
 protobuf==6.32.0
 psycopg2-binary==2.9.10
 pycparser==2.22
@@ -61,6 +63,7 @@ pyparsing==3.2.3
 pyspnego==0.12.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
+python-multipart==0.0.20
 pytz==2025.2
 requests==2.32.5
 requests-kerberos==0.15.0
