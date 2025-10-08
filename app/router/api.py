@@ -4,6 +4,7 @@ from app.controllers.ip_api_controller import point_seach, point_interpolated_sa
 from app.controllers.sample_controller import predict_earning, home
 from app.controllers.task_controller import action_create_task, action_execute_record, action_execute_predict
 from app.controllers.prediction_controller import consume_unit1_lstm
+from app.controllers.vibration_controller import upload_vibration_excel
 
 router = APIRouter()
 
@@ -22,3 +23,4 @@ router.add_api_route("/v1/record-interpolated",point_interpolated_sample,respons
 router.add_api_route("/v1/record-interpolateds",collect_interpolated,response_model=dict,methods=["GET"])
 router.add_api_route("/v1/predict",predictions,response_model=dict,methods=["GET"])
 router.add_api_route("/v1/sensors",sensor_list,response_model=dict,methods=["GET"])
+router.add_api_route("/v1/upload-vibration-excel",upload_vibration_excel,response_model=dict,methods=["POST"])

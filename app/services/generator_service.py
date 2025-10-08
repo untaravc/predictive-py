@@ -52,6 +52,14 @@ async def run_generator_predict(date_from: str = None, date_to: str = None, peri
 
     return sensor
 
+"""
+data: [
+    {
+        "Timestamp": current.isoformat(),
+        "Value": value_applied
+        }
+    ]
+"""
 async def generate_values(date_from: str, date_to, period, normal_value: float):
     data = generate_timestamps(date_from, date_to, period, normal_value)
 
@@ -62,6 +70,8 @@ async def generate_values(date_from: str, date_to, period, normal_value: float):
         "data": data
     }
 
+#    "Timestamp": current.isoformat(),
+#    "Value": value_applied
 def generate_timestamps(from_date: str, to_date: str, period: int, normal_value: float):
     start = datetime.fromisoformat(from_date)
     end = datetime.fromisoformat(to_date)
