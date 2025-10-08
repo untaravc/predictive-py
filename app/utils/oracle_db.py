@@ -53,8 +53,6 @@ def execute_query(query, params=None):
 				return cur.rowcount
 	except Exception as e:
 		print("❌ Error executing query")
-		print("Query:\n", query)
-		print("Params:", params)
 		raise
 
 # ---------- Quick test ----------

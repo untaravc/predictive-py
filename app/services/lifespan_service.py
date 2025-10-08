@@ -2,7 +2,8 @@ from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from app.services.ip_api_service import periodic_call_api_task
+from app.services.task_service import create_task_record, create_task_predict, create_task_upload, create_delete_task
+from app.services.task_execute_service import execute_record_sample
 from dotenv import load_dotenv
 import os
 
@@ -14,13 +15,47 @@ scheduler = AsyncIOScheduler()
 async def lifespan(app: FastAPI):
         scheduler.start()
         if RUN_SCHEDULER == "true":
-            if not scheduler.get_job("periodic_call_api_task"):
+            if not scheduler.get_job("create_task_record"):
                 scheduler.add_job(
-                    periodic_call_api_task,
-                    CronTrigger.from_crontab("*/5 * * * *"),
-                    id="periodic_call_api_task",
+                    create_task_record,
+                    CronTrigger.from_crontab("0 0 * * *"), # daily
+                    id="create_task_record",
                     replace_existing=True
                 )
+
+            # if not scheduler.get_job("create_task_predict"):
+            #     scheduler.add_job(
+            #         create_task_predict,
+            #         CronTrigger.from_crontab("* * * * *"),
+            #         id="create_task_predict",
+            #         replace_existing=True
+            #     )
+
+            # if not scheduler.get_job("create_task_upload"):
+            #     scheduler.add_job(
+            #         create_task_upload,
+            #         CronTrigger.from_crontab("* * * * *"),
+            #         id="create_task_upload",
+            #         replace_existing=True
+            #     )
+            
+            # if not scheduler.get_job("create_delete_task"):
+            #     scheduler.add_job(
+            #         create_delete_task,
+            #         CronTrigger.from_crontab("* * * * *"),
+            #         id="create_delete_task",
+            #         replace_existing=True
+            #     )
+            
+            if not scheduler.get_job("execute_record_sample"):
+                scheduler.add_job(
+                    execute_record_sample,
+                    CronTrigger.from_crontab("* * * * *"), # every minute
+                    id="execute_record_sample",
+                    replace_existing=True
+                )
+
+            
             print("🚀 Scheduler started")
 
         yield
