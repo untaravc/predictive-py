@@ -1,11 +1,9 @@
 CREATE TABLE ugm25_records
 (
-    id          NUMBER GENERATED ALWAYS AS IDENTITY
-        (START WITH 1 INCREMENT BY 1)
-        PRIMARY KEY,
-    sensor_id   NUMBER,
-    record_time TIMESTAMP WITH TIME ZONE,
-    value       VARCHAR2(20 CHAR),
-    created_at  TIMESTAMP,
-    updated_at  TIMESTAMP
+    id          NUMBER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    sensor_id   NUMBER               NOT NULL,
+    record_time DATE                 NOT NULL,
+    value       FLOAT,
+    created_at  DATE DEFAULT SYSDATE NOT NULL,
+    updated_at  DATE
 );

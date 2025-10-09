@@ -8,7 +8,7 @@ from app.configs.oracle_conf import TABLE_SENSORS, TABLE_PREDICTIONS, TABLE_RECO
 from app.utils.oracle_db import fetch_all, execute_query
 from app.services.generator_service import build_merge_query
 from app.configs.unit1_conf import UNIT1_INPUT_COLS, UNIT1_TARGET_COLS
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # --- Konfigurasi ---
 OUTPUT_DIR = "/Users/macbookpro/Documents/Projects/Pse/code/storage/unit1/v1"
@@ -80,7 +80,7 @@ async def run_unit1_lstm_final(days: int = 7):
 
     forecast_df = pd.DataFrame(prediction_original_scale, index=forecast_timestamps, columns=UNIT1_TARGET_COLS)
 
-    print("\n--- Hasil Prediksi untuk 25 Periode ke Depan ---")
+    print("\n--- Hasil Prediksi untuk 7 Periode ke Depan ---")
     # print(forecast_df)
     print(forecast_df.shape)
 
@@ -89,11 +89,11 @@ async def run_unit1_lstm_final(days: int = 7):
     # print(f"\nHasil prediksi telah disimpan di {os.path.join(OUTPUT_DIR, 'new_forecast_results.csv')}")
 
     # Reset index so timestamp becomes a column
-    df_reset = forecast_df.reset_index().rename(columns={"index": "timestamp"})
+    df_reset = forecast_df.reset_index().rename(columns={"index": "Timestamp"})
 
     # Melt to long format
     long_df = df_reset.melt(
-        id_vars=["timestamp"],
+        id_vars=["Timestamp"],
         var_name="Name",
         value_name="Value"
     )
@@ -108,17 +108,24 @@ async def run_unit1_lstm_final(days: int = 7):
     }
 
 def insert_update_db(array):
+    print('Start input db ', len(array))
     sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like 'SKR1%'")
 
+    print(array[:2])
     for sensor in sensors:
         sensor['list'] = []
+
         for arr in array:
             if sensor["NAME"] == arr["Name"]:
-                arr['Timestamp'] = arr['timestamp']
+                ts = arr["Timestamp"]
+                # Ensure timezone-aware and format to ISO 8601 with 'Z'
+                arr["Timestamp"] = ts.tz_localize(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
                 sensor['list'].append(arr)
 
-    # for sensor in sensors:
-    #     if len(sensor['list']) > 0:
+    for sensor in sensors:
+        if len(sensor['list']) > 0:
+            print("Start sensor ", sensor["ID"], len(sensor['list']))
+
             # query, params = build_merge_query(TABLE_PREDICTIONS, sensor["ID"], sensor['list'])
             # return query
             # execute_query(query, params)

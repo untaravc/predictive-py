@@ -3,21 +3,6 @@ from datetime import datetime
 from app.configs.ind_power_conf import BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD
 
 API_TOKEN = "secret-bearer-token"
-
-async def fetch_data_with_bearer_token(url):
-    headers = {
-        "Authorization": f"Bearer {API_TOKEN}",
-        "Accept": "application/json"
-    }
-
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, headers=headers)
-            response.raise_for_status()  # Raise an exception for 4xx/5xx errors
-            data = response.json()
-            return {"success": True, "data": data}
-    except httpx.HTTPError as e:
-        return {"success": False, "data": data}
     
 async def periodic_call_api_task():
     now = datetime.now()
@@ -27,7 +12,6 @@ async def periodic_call_api_task():
 
 async def fetch_data_with_basic_auth(url: str):
     try:
-        # print("indonesiapower/vendor.ugm", BASIC_AUTH_PASSWORD)
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 url,

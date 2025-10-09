@@ -173,7 +173,6 @@ async def run_unit1_lstm():
     else:
         return None
 
-
 def select_sequence_builder(X, y, timesteps, horizon, start_idx, end_idx, mode="full"):
     """Pilih builder sequence: 'full' untuk seluruh data, 'sampled' untuk 1% data."""
     if mode == "sampled":

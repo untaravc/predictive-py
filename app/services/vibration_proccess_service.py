@@ -81,7 +81,7 @@ def process_excel(df):
 
     # pd.DataFrame(poly_results).to_excel(os.path.join(tuning_result_dir, "Poly Results.xlsx"), index=False)
     flattened_data = []
-    for timestamp_key, data_dict in interpolation_dict.items():
+    for timestamp_key, data_dict in regression_dict.items():
         df = pd.DataFrame(data_dict)
 
         # Ensure timestamp column is string

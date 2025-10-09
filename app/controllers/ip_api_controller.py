@@ -184,7 +184,6 @@ async def consume_unit3_lstm():
         "result": result
     }
 
-
 async def sensor_list(request: Request):
     query = "SELECT * FROM "+ TABLE_SENSORS
 
