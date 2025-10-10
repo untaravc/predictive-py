@@ -2,8 +2,8 @@ from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from app.services.task_service import create_task_record, create_task_predict, create_task_upload, create_task_delete
-from app.services.task_execute_service import execute_record_api
+from app.services.task_service import create_task_record, create_task_predict, create_task_upload, task_delete
+from app.services.task_execute_service import execute_record_api, execute_record_sample
 from dotenv import load_dotenv
 import os
 
@@ -17,8 +17,8 @@ async def lifespan(app: FastAPI):
         if RUN_SCHEDULER == "true":
             # if not scheduler.get_job("create_task_record"):
             #     scheduler.add_job(
-            #         create_task_record,
-            #         CronTrigger.from_crontab("0 0 * * *"), # daily
+            #         execute_record_sample,
+            #         CronTrigger.from_crontab("* * * * *"), # daily
             #         id="create_task_record",
             #         replace_existing=True
             #     )

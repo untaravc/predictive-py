@@ -3,12 +3,7 @@ from app.configs.oracle_conf import TABLE_SENSORS, TABLE_TASKS
 from app.services.generator_service import generate_timestamps
 from datetime import datetime, timedelta
 from app.configs.unit1_conf import UNIT1_TARGET_COLS
-
-RECORD_TIME_PERIOD = 720 # 60 = per jam, 24x per hari. 5 = per 5 menit, 288x per hari
-PREDICT_TIME_PERIOD = 720 # 60 = per jam, 24x per hari. 5 = per 5 menit, 288x per hari
-UPLOAD_TIME_PERIOD = 1440 # 60 = per jam, 24x per hari. 5 = per 5 menit, 288x per hari
-SENSOR_NAME_QUERY = "SKR1%"
-PREDICT_UNIT = 1
+from app.configs.base_conf import RECORD_TIME_PERIOD, PREDICT_TIME_PERIOD, UPLOAD_TIME_PERIOD, SENSOR_NAME_QUERY, PREDICT_UNIT
 
 # Membuat task untuk pemanggilan API Record tiap sensor
 # Membuat task untuk menjalankan model predict
@@ -19,7 +14,6 @@ async def create_task_record():
     start = now.strftime("%Y-%m-%d 00:00:00")
     end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
 
-    # RECORD
     for sensor in sensors:
         print("Start sensor ", sensor["ID"])
         timestamps = generate_timestamps(start, end, RECORD_TIME_PERIOD, sensor["NORMAL_VALUE"])
@@ -49,21 +43,21 @@ async def create_task_upload():
             
     for sensor in sensors:
         if sensor['NAME'] in UNIT1_TARGET_COLS:
-            timestamps = generate_timestamps(start, end, RECORD_TIME_PERIOD, sensor["NORMAL_VALUE"])
+            timestamps = generate_timestamps(start, end, UPLOAD_TIME_PERIOD, sensor["NORMAL_VALUE"])
             query, params = build_insert_many(timestamps, sensor["ID"], "upload")
-            
+
             execute_query(query, params)
             print("Upload task ", sensor["ID"])
 
     return "Success"
 
-async def create_task_delete():
-    print("create_delete_task")
+async def task_delete():
+    print("Service: delete_task")
     execute_query("DELETE FROM "+ TABLE_TASKS +" WHERE is_complete = 1")
 
 def build_insert_many(timestamps, params, category):
     base = """
-    INSERT INTO ugm25_tasks (category, params, start_at, is_complete, created_at, updated_at)
+    INSERT INTO {TABLE_TASKS} (category, params, start_at, is_complete, created_at, updated_at)
     """
     selects = []
     params = {"params": params, "category": category}

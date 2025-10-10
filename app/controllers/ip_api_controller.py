@@ -68,7 +68,7 @@ async def point_interpolated_sample(request: Request):
         has_record = fetch_one(
             "SELECT * FROM " + TABLE_RECORDS +
             " WHERE sensor_id = :sensor_id "
-            "AND record_time = TO_TIMESTAMP_TZ(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')",
+            "AND record_time = TO_DATE(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS')",
             {
                 "sensor_id": sensor["ID"],
                 "record_time": items[i]["Timestamp"]
@@ -79,7 +79,7 @@ async def point_interpolated_sample(request: Request):
             execute_query(
                 "INSERT INTO " + TABLE_RECORDS + 
                 " (SENSOR_ID, RECORD_TIME, VALUE, CREATED_AT, UPDATED_AT) " +
-                "VALUES (:sensor_id, TO_TIMESTAMP_TZ(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), :value, SYSDATE, SYSDATE)",
+                "VALUES (:sensor_id, TO_DATE(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS'), :value, SYSDATE, SYSDATE)",
                 {
                     "sensor_id": sensor["ID"],
                     "record_time": items[i]["Timestamp"],
@@ -127,7 +127,7 @@ async def collect_interpolated(request: Request):
             has_record = fetch_one(
                 "SELECT * FROM " + TABLE_RECORDS +
                 " WHERE sensor_id = :sensor_id "
-                "AND record_time = TO_TIMESTAMP_TZ(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')",
+                "AND record_time = TO_DATE(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS')",
                 {
                     "sensor_id": sensor["ID"],
                     "record_time": items[i]["Timestamp"]
@@ -138,7 +138,7 @@ async def collect_interpolated(request: Request):
                 execute_query(
                     "INSERT INTO " + TABLE_RECORDS + 
                     " (SENSOR_ID, RECORD_TIME, VALUE, CREATED_AT, UPDATED_AT) " +
-                    "VALUES (:sensor_id, TO_TIMESTAMP_TZ(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), :value, SYSDATE, SYSDATE)",
+                    "VALUES (:sensor_id, TO_DATE(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS'), :value, SYSDATE, SYSDATE)",
                     {
                         "sensor_id": sensor["ID"],
                         "record_time": items[i]["Timestamp"],
@@ -208,10 +208,10 @@ async def predictions(request: Request):
     #     query_where.append("sensor_id = :sensorId")
 
     if(request.query_params.get("startTime") != None):
-        query_where.append("p.record_time >= TO_TIMESTAMP_TZ(:startTime, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')")
+        query_where.append("p.record_time >= TO_DATE(:startTime, 'YYYY-MM-DD\"T\"HH24:MI:SS')")
 
     if(request.query_params.get("endTime") != None):
-        query_where.append("p.record_time <= TO_TIMESTAMP_TZ(:endTime, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"')")
+        query_where.append("p.record_time <= TO_DATE(:endTime, 'YYYY-MM-DD\"T\"HH24:MI:SS')")
 
     if(request.query_params.get("sensorIds") != None):
         query_where.append("p.sensor_id IN (" + request.query_params.get("sensorIds") + ")")

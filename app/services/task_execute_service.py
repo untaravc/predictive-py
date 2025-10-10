@@ -8,25 +8,25 @@ import urllib3
 from osisoft.pidevclub.piwebapi.pi_web_api_client import PIWebApiClient
 from osisoft.pidevclub.piwebapi.models import PIAnalysis, PIItemsStreamValues, PIStreamValues, PITimedValue, PIRequest
 from app.configs.osisof_conf import OSISOF_USER, OSISOF_PASSWORD, OSISOF_URL
+from app.utils.helper import chunk_list
+from app.predictions.unit1_v1 import run_unit1_lstm_final
 
-RECORD_TIME_PERIOD = 1440 # 60 = per jam, 24x per hari. 5 = per 5 menit, 288x per hari
-PREDICT_TIME_PERIOD = 1440 # 60 = per jam, 24x per hari. 5 = per 5 menit, 288x per hari
-UPLOAD_TIME_PERIOD = 1440 # 60 = per jam, 24x per hari. 5 = per 5 menit, 288x per hari
-SENSOR_NAME_QUERY = "SKR1%"
-PREDICT_UNIT = 1
-RECORD_BACK_DATE=7
+RECORD_BACK_DATE=7 # berapa hari kebelakang dalam pengambilan data record
 INTERPOLATED_URL="https://pivision.plnindonesiapower.co.id/piwebapi/streams/"
 UPLOAD_PREDICT_DAYS=50
+RECORD_PER_SESSION=5 # berapa task yang dikerjakan salam satu schedule
 
 async def execute_record_sample():
-    # Run Over TASK
-    tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
+    tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
+    print('Start execute_record_sample ', str(len(tasks)))
+    
     for task in tasks:
-        date_from = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
-        date_to = (task["START_AT"] + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+        print("Generating record for sensor ", task["PARAMS"])
+        date_from = (task["START_AT"] - timedelta(days=RECORD_BACK_DATE)).strftime("%Y-%m-%d %H:%M:%S")
+        date_to = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
         period = 5
         await run_generator_record(task["PARAMS"], date_from, date_to, period)
-        execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
+        execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 2 WHERE id = :id", {"id": task["ID"]})
 
     return 'Record completed'
 
@@ -56,7 +56,6 @@ async def execute_record_api():
                     "Value": value_num
                 })
 
-            # chunk 500
             for i, chunk in enumerate(chunk_list(insert_data, 500), start=1):
                 print(f"Processing batch {i} ({len(chunk)} records)")
                 query, params = build_merge_query(TABLE_RECORDS, sensor["ID"], chunk)
@@ -69,11 +68,17 @@ async def execute_record_api():
         "sensor" : tasks
     }
 
-async def execute_predict_sample(date_from: str = None, date_to: str = None, period: int = None):
-    pass
-
 async def execute_predict():
-    pass
+    print('Start execute_predict')
+    tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'predict' AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
+    print('Tasks', len(tasks))
+
+    for task in tasks:
+        print("Generating predict for sensor ", task["PARAMS"])
+        await run_unit1_lstm_final()
+        
+
+    return 'Predict completed'
 
 async def execute_upload():
     print('Start execute_upload')
@@ -84,7 +89,7 @@ async def execute_upload():
         sensor = fetch_one("SELECT * FROM "+ TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
         startTime = (task["START_AT"] - timedelta(days=UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
         sensor["ID"] = 146867
-        predictions = fetch_all("SELECT * FROM "+ TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_TIMESTAMP_TZ('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS')")
+        predictions = fetch_all("SELECT * FROM "+ TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS')")
 
         print(predictions[0:2])
         client = getPIWebApiClient(OSISOF_URL, OSISOF_USER, OSISOF_PASSWORD)
@@ -94,14 +99,14 @@ async def execute_upload():
         # point1 = client.point.get_by_path(path, None)
         point1 = client.point.get_by_path("\\\\PI1\SKR1.PRED.tes.prediksi", None)
         
-        total_data = len(predictions)
 
         streamValue1 = PIStreamValues()
 
         values1 = list()
         streamValue1.web_id = point1.web_id
 
-        for i in range(len(predictions)):
+        total_data = len(predictions)
+        for i in range(total_data):
             value1 = PITimedValue()
             value1.value = predictions[i]["VALUE"]
             value1.timestamp = predictions[i]["RECORD_TIME"].strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -118,9 +123,6 @@ async def execute_upload():
         print(response)
 
 # Functions ==========
-def chunk_list(data, size):
-    for i in range(0, len(data), size):
-        yield data[i:i + size]
 
 def getPIWebApiClient(webapi_url, usernme, psswrd):
     client = PIWebApiClient(webapi_url, False, 

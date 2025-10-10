@@ -3,6 +3,7 @@ import random
 from app.utils.oracle_db import execute_query, fetch_all, fetch_one
 from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTIONS
 from app.statics.normal_value import normal_value_unit1, normal_value_unit3
+from app.utils.helper import chunk_list
 
 SENSOR_NAME_QUERY = "SKR1%"
 async def run_generator_record(sensor_id: int, date_from: str = None, date_to: str = None, period: int = None):
@@ -22,9 +23,10 @@ async def run_generator_record(sensor_id: int, date_from: str = None, date_to: s
 
     data_generate = await generate_values(date_from, date_to, period, sensor["NORMAL_VALUE"])
 
-    query, params = build_merge_query(TABLE_RECORDS, sensor["ID"], data_generate['data'])
-
-    execute_query(query, params)
+    for i, chunk in enumerate(chunk_list(data_generate['data'], 500), start=1):
+        print(f"Processing batch {i} ({len(chunk)} records)")
+        query, params = build_merge_query(TABLE_RECORDS, sensor["ID"], chunk)
+        execute_query(query, params)
 
     return sensor
 
@@ -107,12 +109,6 @@ def set_normal_value():
 
     return unit_1
 
-# UPDATE ugm25_sensors
-#     SET NORMAL_VALUE = CASE 
-#                 WHEN ID = 10 THEN 0.2
-#                 WHEN ID = 10 THEN 0.1
-#                 ELSE salary
-#                 END;
 def set_normal_values():
     units = normal_value_unit3()
 
@@ -143,7 +139,7 @@ def build_merge_query(table_name, sensor_id, items):
         subqueries.append(
             f"""
             SELECT :sensor_id{i} AS sensor_id,
-                   TO_TIMESTAMP_TZ(:record_time{i}, 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS record_time,
+                   TO_DATE(:record_time{i}, 'YYYY-MM-DD"T"HH24:MI:SS') AS record_time,
                    :value{i} AS value
             FROM dual
             """

@@ -1,5 +1,5 @@
-from app.services.task_execute_service import execute_record_sample, execute_predict_sample, execute_record_api, execute_upload
-from app.services.task_service import create_task_record, create_task_predict, create_task_upload, create_task_delete
+from app.services.task_execute_service import execute_record_sample, execute_predict, execute_record_api, execute_upload
+from app.services.task_service import create_task_record, create_task_predict, create_task_upload, task_delete
 from fastapi import Request
 async def action_create_task_record():
     result = await create_task_record()
@@ -22,22 +22,22 @@ async def action_create_task_upload():
         "result": result
     }
 
-async def action_create_task_delete():
-    result = await create_task_delete()
+async def action_task_delete():
+    result = await task_delete()
     return {
         "success": True,
         "result": result
     }
 
-async def action_execute_record_sample(request: Request):
+async def action_execute_record_sample():
     result = await execute_record_sample()
     return {
         "success": True,
         "result": result
     }
 
-async def action_execute_predict(request: Request):
-    result = await execute_predict_sample()
+async def action_execute_predict():
+    result = await execute_predict()
     return {
         "success": True,
         "result": result

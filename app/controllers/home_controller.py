@@ -10,6 +10,7 @@ async def home():
             "version": "0.1",
             "last_update": "2025-10-10",
             "features": [
+                "Create tasks",
                 "Prediksi 2 Minggu",
             ]
         },

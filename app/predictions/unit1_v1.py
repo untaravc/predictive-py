@@ -9,6 +9,8 @@ from app.utils.oracle_db import fetch_all, execute_query
 from app.services.generator_service import build_merge_query
 from app.configs.unit1_conf import UNIT1_INPUT_COLS, UNIT1_TARGET_COLS
 from datetime import datetime, timedelta, timezone
+from app.utils.helper import chunk_list
+from app.configs.base_conf import SENSOR_NAME_QUERY
 
 # --- Konfigurasi ---
 OUTPUT_DIR = "/Users/macbookpro/Documents/Projects/Pse/code/storage/unit1/v1"
@@ -18,8 +20,10 @@ SCALER_Y_PATH = os.path.join(OUTPUT_DIR, "scaler_y.save")
 DATA_PATH = os.path.join(OUTPUT_DIR, "Dataset.xlsx")
 TIMESTEPS = 2016
 HORIZON = 2016
+PREPARE_DATA = 7
 
-async def run_unit1_lstm_final(days: int = 7):
+async def run_unit1_lstm_final():
+    version = datetime.now().strftime("%Y%m%d%H%M%S")
 # --- 1. Load Model dan Scaler ---
     print("Loading model and scalers...")
     # Load model. `compile=False` mempercepat loading karena kita tidak akan training lagi.
@@ -34,7 +38,8 @@ async def run_unit1_lstm_final(days: int = 7):
     # sebagai input untuk memprediksi 25 periode ke depan.
     # GANTI BAGIAN INI DENGAN DATA ASLI ANDA
     # df = pd.read_excel(DATA_PATH, index_col=0, parse_dates=True)
-    df = await prepare_data_input(days)
+    df = await prepare_data_input(PREPARE_DATA)
+    df.to_csv(os.path.join(OUTPUT_DIR, "Dataset_"+ version +".csv"))
 
     # df = df.sort_index()
     # df.replace('I/O Timeout', np.nan, inplace=True)
@@ -80,13 +85,8 @@ async def run_unit1_lstm_final(days: int = 7):
 
     forecast_df = pd.DataFrame(prediction_original_scale, index=forecast_timestamps, columns=UNIT1_TARGET_COLS)
 
-    print("\n--- Hasil Prediksi untuk 7 Periode ke Depan ---")
-    # print(forecast_df)
-    print(forecast_df.shape)
-
-    # Simpan hasil prediksi ke file CSV atau Excel
-    # forecast_df.to_csv(os.path.join(OUTPUT_DIR, "new_forecast_results.csv"))
-    # print(f"\nHasil prediksi telah disimpan di {os.path.join(OUTPUT_DIR, 'new_forecast_results.csv')}")
+    print( "Shape hasil prediksi: ", forecast_df.shape)
+    forecast_df.to_csv(os.path.join(OUTPUT_DIR, "results_"+ version +".csv"))
 
     # Reset index so timestamp becomes a column
     df_reset = forecast_df.reset_index().rename(columns={"index": "Timestamp"})
@@ -102,6 +102,7 @@ async def run_unit1_lstm_final(days: int = 7):
     result = long_df.to_dict(orient="records")
 
     insert_update_db(result)
+
     return {
         "status": "success",
         "message": result[0]
@@ -109,9 +110,8 @@ async def run_unit1_lstm_final(days: int = 7):
 
 def insert_update_db(array):
     print('Start input db ', len(array))
-    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like 'SKR1%'")
+    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like '"+SENSOR_NAME_QUERY+"'")
 
-    print(array[:2])
     for sensor in sensors:
         sensor['list'] = []
 
@@ -119,21 +119,20 @@ def insert_update_db(array):
             if sensor["NAME"] == arr["Name"]:
                 ts = arr["Timestamp"]
                 # Ensure timezone-aware and format to ISO 8601 with 'Z'
-                arr["Timestamp"] = ts.tz_localize(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                arr["Timestamp"] = ts.tz_localize(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
                 sensor['list'].append(arr)
 
     for sensor in sensors:
         if len(sensor['list']) > 0:
-            print("Start sensor ", sensor["ID"], len(sensor['list']))
-
-            # query, params = build_merge_query(TABLE_PREDICTIONS, sensor["ID"], sensor['list'])
-            # return query
-            # execute_query(query, params)
+            for i, chunk in enumerate(chunk_list(sensor['list'], 500), start=1):
+                print(f"Processing batch {i} ({len(chunk)} records)")
+                # query, params = build_merge_query(TABLE_PREDICTIONS, sensor["ID"], chunk)
+                # execute_query(query, params)
 
 async def prepare_data_input(days: int = 7):
     date_from = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     print('query sensors')
-    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like 'SKR1%'")
+    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like '"+SENSOR_NAME_QUERY+"'")
     input_sensors_ids = []
 
     # compare with UNIT1_INPUT_COLS
@@ -141,20 +140,23 @@ async def prepare_data_input(days: int = 7):
         if sensor["NAME"] in UNIT1_INPUT_COLS:
             input_sensors_ids.append(sensor["ID"])
     
-    query_select = "SELECT " + TABLE_RECORDS +".*, "+ TABLE_SENSORS +".NAME, "+ TABLE_SENSORS +".NORMAL_VALUE FROM "+ TABLE_RECORDS +" LEFT JOIN "+ TABLE_SENSORS +" ON "+ TABLE_RECORDS +".SENSOR_ID = "+ TABLE_SENSORS +".ID WHERE SENSOR_ID IN (" + ",".join(map(str, input_sensors_ids)) + ") AND RECORD_TIME >= TO_TIMESTAMP(:date_from, 'YYYY-MM-DD')"
+    query_select = "SELECT " + TABLE_RECORDS +".*, "+ TABLE_SENSORS +".NAME, "+ TABLE_SENSORS +".NORMAL_VALUE FROM "+ TABLE_RECORDS 
+    query_select = query_select +" LEFT JOIN "+ TABLE_SENSORS +" ON "+ TABLE_RECORDS +".SENSOR_ID = "+ TABLE_SENSORS +".ID"
+    query_select = query_select +" WHERE SENSOR_ID IN (" + ",".join(map(str, input_sensors_ids)) + ") AND RECORD_TIME >= TO_DATE(:date_from, 'YYYY-MM-DD')"
     params = {"date_from": date_from}
 
     print('query records')
     data_records = fetch_all(query_select, params)
 
+    print('data_records count: ', len(data_records))
+
     # --- 1️⃣ Convert to DataFrame ---
     df_raw = pd.DataFrame(data_records)
     df_raw["RECORD_TIME"] = pd.to_datetime(df_raw["RECORD_TIME"])
     df_raw["VALUE"] = df_raw["VALUE"].astype(float)
-    print('df_raw')
 
     # --- 2️⃣ Build time index for one week with 5-minute intervals ---
-    start_time = pd.Timestamp("2025-09-28 00:00:00")
+    start_time = pd.Timestamp(date_from)
     time_index = pd.date_range(start=start_time, periods=2016, freq="5min")
 
     # --- 3️⃣ Create mapping from sensor to its NORMAL_VALUE ---
