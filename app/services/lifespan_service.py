@@ -15,11 +15,11 @@ scheduler = AsyncIOScheduler()
 async def lifespan(app: FastAPI):
         scheduler.start()
         if RUN_SCHEDULER == "true":
-            # if not scheduler.get_job("create_task_record"):
+            # if not scheduler.get_job("execute_record_api"):
             #     scheduler.add_job(
-            #         execute_record_sample,
+            #         execute_record_api,
             #         CronTrigger.from_crontab("* * * * *"), # daily
-            #         id="create_task_record",
+            #         id="execute_record_api",
             #         replace_existing=True
             #     )
 

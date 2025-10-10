@@ -13,7 +13,7 @@ from app.predictions.unit1_v1 import run_unit1_lstm_final
 
 RECORD_BACK_DATE=7 # berapa hari kebelakang dalam pengambilan data record
 INTERPOLATED_URL="https://pivision.plnindonesiapower.co.id/piwebapi/streams/"
-UPLOAD_PREDICT_DAYS=50
+UPLOAD_PREDICT_DAYS=1
 RECORD_PER_SESSION=5 # berapa task yang dikerjakan salam satu schedule
 
 async def execute_record_sample():
@@ -32,7 +32,8 @@ async def execute_record_sample():
 
 async def execute_record_api():
     print('Start execute_record_api')
-    tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND PARAMS > 1000 AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
+    tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete != 1 AND category = 'record' AND PARAMS > 1000 AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
+    print("Task found ", str(len(tasks)))
 
     for task in tasks:
         try:
@@ -47,12 +48,16 @@ async def execute_record_api():
             print('Result api ' + sensor["NAME"] + ' ' + str(sensor['ID']) + ': '  + str(len(items)) + ' items')
 
             insert_data = []
-            for i in range(len(items)):
-                val = items[i]['Value']
+            for item in items:
+                val = item['Value']
                 value_num = 0 if isinstance(val, dict) else val
 
+                ts = item.get("Timestamp", "")
+                if ts.endswith("Z"):
+                    ts = ts[:-1]
+
                 insert_data.append({
-                    "Timestamp": items[i]["Timestamp"],
+                    "Timestamp": ts,
                     "Value": value_num
                 })
 
@@ -76,7 +81,7 @@ async def execute_predict():
     for task in tasks:
         print("Generating predict for sensor ", task["PARAMS"])
         await run_unit1_lstm_final()
-        
+        execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
 
@@ -86,41 +91,41 @@ async def execute_upload():
     tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload' AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
 
     for task in tasks:
+        print('Tasks ', task['PARAMS'])
         sensor = fetch_one("SELECT * FROM "+ TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
         startTime = (task["START_AT"] - timedelta(days=UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
-        sensor["ID"] = 146867
+        print("Start time ", startTime)
         predictions = fetch_all("SELECT * FROM "+ TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS')")
-
-        print(predictions[0:2])
+        
         client = getPIWebApiClient(OSISOF_URL, OSISOF_USER, OSISOF_PASSWORD)
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-        # path = f"\\\\PI1\{sensor['NAME']}.prediksi"
-        # point1 = client.point.get_by_path(path, None)
-        point1 = client.point.get_by_path("\\\\PI1\SKR1.PRED.tes.prediksi", None)
-        
+        path = f"\\\\PI1\{sensor['NAME']}.prediksi"
+        point1 = client.point.get_by_path(path, None)
+        # point1 = client.point.get_by_path("\\\\PI1\SKR1.PRED.tes.prediksi", None)
 
         streamValue1 = PIStreamValues()
-
+        
         values1 = list()
         streamValue1.web_id = point1.web_id
-
+        print('Web ID ',point1.web_id)
         total_data = len(predictions)
+        print("Prediction data: ", total_data)
         for i in range(total_data):
             value1 = PITimedValue()
             value1.value = predictions[i]["VALUE"]
             value1.timestamp = predictions[i]["RECORD_TIME"].strftime("%Y-%m-%dT%H:%M:%SZ")
-            print(value1.timestamp)
             values1.append(value1)
 
+        print("Items ",len(values1))
         streamValue1.items = values1
 
         streamValues = list()
         streamValues.append(streamValue1)
 
         response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
-
         print(response)
+        execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
 
 # Functions ==========
 

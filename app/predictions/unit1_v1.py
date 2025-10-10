@@ -126,8 +126,8 @@ def insert_update_db(array):
         if len(sensor['list']) > 0:
             for i, chunk in enumerate(chunk_list(sensor['list'], 500), start=1):
                 print(f"Processing batch {i} ({len(chunk)} records)")
-                # query, params = build_merge_query(TABLE_PREDICTIONS, sensor["ID"], chunk)
-                # execute_query(query, params)
+                query, params = build_merge_query(TABLE_PREDICTIONS, sensor["ID"], chunk)
+                execute_query(query, params)
 
 async def prepare_data_input(days: int = 7):
     date_from = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
