@@ -4,7 +4,9 @@ import numpy as np, pandas as pd
 from tensorflow.keras import mixed_precision
 from sklearn.preprocessing import StandardScaler
 import os
-import joblib
+from app.statics.unit1_io import unit1_in, unit1_out
+from app.utils.oracle_db import execute_query
+from app.archives.oracle_conf import TABLE_SENSORS
 
 # ---------------- Config ----------------
 DATA_PATH = "/Users/macbookpro/Documents/Projects/Pse/code/storage/trainer/unit1/Unit1SampleInput.xlsx"

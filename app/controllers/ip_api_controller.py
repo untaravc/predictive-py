@@ -1,18 +1,22 @@
 from fastapi import Request
-from app.services.ip_api_service import fetch_data_with_basic_auth
-from app.configs.ind_power_conf import DATA_SERVER_WEB_ID, URL_POINT_SEARCH, URL_STREAM_INTERPOLATED
-from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTIONS
+from app.archives.ip_api_service import fetch_data_with_basic_auth
+# from app.configs.ind_power_conf import DATA_SERVER_WEB_ID, URL_POINT_SEARCH, URL_STREAM_INTERPOLATED
+from app.configs.base_conf import settings
 from app.utils.oracle_db import fetch_one, execute_query, fetch_all
 from app.services.generator_service import run_generator_record, set_normal_values
 from app.services.unit3_service import run_unit3_lstm
-from app.services.pi_vision_service import post_prediction_result
-from tensorflow import keras
-import numpy as np
+from app.archives.pi_vision_service import post_prediction_result
 from collections import defaultdict
+from app.configs.base_conf import settings
+from app.statics.unit1_io import unit1_in
 
-async def point_seach(query: str):
-    base_url = URL_POINT_SEARCH
-    url = base_url +"?dataserverwebid="+DATA_SERVER_WEB_ID+"&query=" + query
+async def point_seach(query: str = None):
+    print("Point search...", settings.SENSOR_NAME_QUERY_STAR)
+    if query == None:
+        query = settings.SENSOR_NAME_QUERY_STAR
+
+    base_url = settings.URL_POINT_SEARCH
+    url = base_url +"?dataserverwebid="+settings.DATA_SERVER_WEB_ID+"&query=" + query
 
     response = await fetch_data_with_basic_auth(url)
 
@@ -25,17 +29,29 @@ async def point_seach(query: str):
     items = response['result']['Items']
 
     for i in range(len(items)):
+        status = 1
+        if "prediksi" in items[i]["Name"].lower() or "tes" in items[i]["Name"].lower():
+            status = 0
         # insert to db if not exist
-        has_record = fetch_one("SELECT * FROM "+ TABLE_SENSORS +" WHERE "+ TABLE_SENSORS +".ID = :id", {"id": items[i]["Id"]})
+        has_record = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE "+ settings.TABLE_SENSORS +".ID = :id", {"id": items[i]["Id"]})
         if(has_record == None):
             execute_query(
-                "INSERT INTO "+ TABLE_SENSORS +" (ID, WEB_ID, NAME, PATH, DESCRIPTOR, IS_ACTIVE, CREATED_AT, UPDATED_AT) VALUES (:id, :web_id, :name, :path, :descriptor, 1, SYSDATE, SYSDATE)",
-                {"id": items[i]["Id"], "web_id": items[i]["WebId"], "name": items[i]["Name"], "path": items[i]["Path"] ,"descriptor": items[i]["Descriptor"]}
+                "INSERT INTO "+ settings.TABLE_SENSORS +" (ID, WEB_ID, NAME, PATH, DESCRIPTOR, IS_ACTIVE, CREATED_AT, UPDATED_AT) VALUES (:id, :web_id, :name, :path, :descriptor, :status, SYSDATE, SYSDATE)",
+                {"id": items[i]["Id"], "web_id": items[i]["WebId"], "name": items[i]["Name"], "path": items[i]["Path"] ,"descriptor": items[i]["Descriptor"], "status": status}
             )
         else:
             execute_query(
-                "UPDATE "+ TABLE_SENSORS +" SET WEB_ID = :web_id, NAME = :name, PATH = :path, DESCRIPTOR = :descriptor WHERE ID = :id, UPDATED_AT = SYSDATE",
-                {"id": items[i]["Id"], "web_id": items[i]["WebId"], "name": items[i]["Name"], "path": items[i]["Path"], "descriptor": items[i]["Descriptor"]}
+                "UPDATE "+ settings.TABLE_SENSORS +" SET WEB_ID = :web_id, NAME = :name, PATH = :path, DESCRIPTOR = :descriptor, UPDATED_AT = SYSDATE, IS_ACTIVE = :status WHERE ID = :id",
+                {"id": items[i]["Id"], "web_id": items[i]["WebId"], "name": items[i]["Name"], "path": items[i]["Path"], "descriptor": items[i]["Descriptor"], "status": status}
+            )
+
+    unit1 = unit1_in()
+    for i in range(len(unit1)):
+        sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE "+ settings.TABLE_SENSORS +".ID = :id", {"id": unit1[i]["id"]})
+        if(sensor == None):
+            execute_query(
+                "INSERT INTO "+ settings.TABLE_SENSORS +" (ID, WEB_ID, NAME, PATH, DESCRIPTOR, IS_ACTIVE, CREATED_AT, UPDATED_AT) VALUES (:id, :web_id, :name, :path, :descriptor, :status, SYSDATE, SYSDATE)",
+                {"id": unit1[i]["id"], "web_id": "", "name": unit1[i]["name"], "path": "" ,"descriptor": "", "status": 1}
             )
 
     return {

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import random
 from app.utils.oracle_db import execute_query, fetch_all, fetch_one
-from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTIONS
+from app.configs.base_conf import settings
 from app.statics.normal_value import normal_value_unit1, normal_value_unit3
 from app.utils.helper import chunk_list
 
@@ -16,7 +16,7 @@ async def run_generator_record(sensor_id: int, date_from: str = None, date_to: s
         period = 60
 
     # get sensors
-    sensor = fetch_one("SELECT ID, NORMAL_VALUE FROM "+ TABLE_SENSORS +" WHERE ID = :id", {"id": sensor_id})
+    sensor = fetch_one("SELECT ID, NORMAL_VALUE FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": sensor_id})
 
     if(sensor["NORMAL_VALUE"] == None):
         return sensor
@@ -25,7 +25,7 @@ async def run_generator_record(sensor_id: int, date_from: str = None, date_to: s
 
     for i, chunk in enumerate(chunk_list(data_generate['data'], 500), start=1):
         print(f"Processing batch {i} ({len(chunk)} records)")
-        query, params = build_merge_query(TABLE_RECORDS, sensor["ID"], chunk)
+        query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk)
         execute_query(query, params)
 
     return sensor
@@ -40,7 +40,7 @@ async def run_generator_predict(date_from: str = None, date_to: str = None, peri
         period = 60
 
     # get sensors
-    sensors = fetch_all("SELECT ID, NORMAL_VALUE FROM "+ TABLE_SENSORS +" WHERE NAME like +'" + SENSOR_NAME_QUERY + "'")
+    sensors = fetch_all("SELECT ID, NORMAL_VALUE FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'" + SENSOR_NAME_QUERY + "'")
 
     for sensor in sensors:
         print("Start sensor ", sensor["ID"])
@@ -49,7 +49,7 @@ async def run_generator_predict(date_from: str = None, date_to: str = None, peri
 
         data_generate = await generate_values(date_from, date_to, period, sensor["NORMAL_VALUE"])
 
-        query, params = build_merge_query(TABLE_PREDICTIONS, sensor["ID"], data_generate['data'])
+        query, params = build_merge_query(settings.TABLE_PREDICTIONS, sensor["ID"], data_generate['data'])
         execute_query(query, params)
 
     return sensor
@@ -105,14 +105,14 @@ def set_normal_value():
 
     for item in unit_1:
         print("update", item["ID"], item["NORMAL_VALUE"])
-        execute_query("UPDATE "+ TABLE_SENSORS +" SET NORMAL_VALUE = :value WHERE ID = :id", {"value": item["NORMAL_VALUE"], "id": item["ID"]})
+        execute_query("UPDATE "+ settings.TABLE_SENSORS +" SET NORMAL_VALUE = :value WHERE ID = :id", {"value": item["NORMAL_VALUE"], "id": item["ID"]})
 
     return unit_1
 
 def set_normal_values():
     units = normal_value_unit3()
 
-    sql_update = "UPDATE "+ TABLE_SENSORS +" SET NORMAL_VALUE = CASE "
+    sql_update = "UPDATE "+ settings.TABLE_SENSORS +" SET NORMAL_VALUE = CASE "
     for item in units:
         sql_update += "WHEN ID = "+ str(item["ID"]) +" THEN "+ str(item["NORMAL_VALUE"]) +" "
     sql_update += "ELSE NORMAL_VALUE END"

@@ -12,9 +12,9 @@ from sklearn.metrics import (
     mean_absolute_percentage_error)
 
 from app.utils.oracle_db import execute_query, fetch_all
-from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS
+# from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS
 from app.services.generator_service import build_merge_query
-from app.configs.base_conf import SENSOR_NAME_QUERY_VIBRATION
+from app.configs.base_conf import settings
 
 def process_excel(df):
     # Fungsi ini untuk mencari folder Preprocessing Data
@@ -97,12 +97,12 @@ def process_excel(df):
     # Convert to list of dicts
     flattened_data.extend(long_df.to_dict(orient="records"))
     
-    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like +'" + SENSOR_NAME_QUERY_VIBRATION + "'")
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'" + settings.SENSOR_NAME_QUERY_VIBRATION + "'")
     for sensor in sensors:
         filtered = [item for item in flattened_data if item["Name"] == sensor["NAME"]]
         for i, chunk in enumerate(chunk_list(filtered, 500), start=1):
             print(f"Processing batch {i} ({len(chunk)} records)")
-            query, params = build_merge_query(TABLE_RECORDS, sensor["ID"], chunk)
+            query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk)
             execute_query(query, params)
 
     return len(sensor)

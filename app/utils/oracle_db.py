@@ -1,15 +1,15 @@
 import oracledb
-from app.configs.oracle_conf import DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_SERVICE, TABLE_SENSORS
+from app.configs.base_conf import settings
 
 _pool = None  # global pool instance
 
 def init_pool():
     global _pool
     if _pool is None:
-        dsn = f"//{DB_HOST}:{DB_PORT}/{DB_SERVICE}"  # classic EZConnect syntax
+        dsn = f"//{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"  # classic EZConnect syntax
         _pool = oracledb.create_pool(
-            user=DB_USER,
-            password=DB_PASSWORD,
+            user=settings.ORACLE_DB_USER,
+            password=settings.ORACLE_DB_PASSWORD,
             dsn=dsn,
             min=1,
             max=5,
@@ -60,7 +60,7 @@ def execute_query(query, params=None):
 def test_connection():
 	print("Testing connection...")
 	try:
-		result = fetch_one("SELECT * FROM " + TABLE_SENSORS)
+		result = fetch_one("SELECT * FROM " + settings.TABLE_SENSORS)
 		if result:
 			print(f"Connected successfully! Query result: {result[0]}")
 		else: 

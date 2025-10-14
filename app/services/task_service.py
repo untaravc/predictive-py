@@ -1,22 +1,23 @@
 from app.utils.oracle_db import fetch_all, execute_query, fetch_one
-from app.configs.oracle_conf import TABLE_SENSORS, TABLE_TASKS
+# from app.configs.oracle_conf import TABLE_SENSORS, TABLE_TASKS
 from app.services.generator_service import generate_timestamps
 from datetime import datetime, timedelta
 from app.configs.unit1_conf import UNIT1_TARGET_COLS
-from app.configs.base_conf import RECORD_TIME_PERIOD, PREDICT_TIME_PERIOD, UPLOAD_TIME_PERIOD, SENSOR_NAME_QUERY, PREDICT_UNIT
+from app.configs.base_conf import settings
+# from app.configs.base_conf import RECORD_TIME_PERIOD, PREDICT_TIME_PERIOD, UPLOAD_TIME_PERIOD, SENSOR_NAME_QUERY, PREDICT_UNIT
 
 # Membuat task untuk pemanggilan API Record tiap sensor
 # Membuat task untuk menjalankan model predict
 async def create_task_record():
     print("Service: create_task_record")
-    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like +'" + SENSOR_NAME_QUERY + "' AND WEB_ID IS NOT NULL")
+    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like +'" + settings.SENSOR_NAME_QUERY + "' AND WEB_ID IS NOT NULL")
     now = datetime.now()
     start = now.strftime("%Y-%m-%d 00:00:00")
     end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
 
     for sensor in sensors:
         print("Start sensor ", sensor["ID"])
-        timestamps = generate_timestamps(start, end, RECORD_TIME_PERIOD, sensor["NORMAL_VALUE"])
+        timestamps = generate_timestamps(start, end, settings.RECORD_TIME_PERIOD, sensor["NORMAL_VALUE"])
         query, params = build_insert_many(timestamps, sensor["ID"], "record")
         execute_query(query, params)
 
@@ -28,8 +29,8 @@ async def create_task_predict():
     start = now.strftime("%Y-%m-%d 00:00:00")
     end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
             
-    predict_timestamps = generate_timestamps(start, end, PREDICT_TIME_PERIOD, 0)
-    predict_query, predict_params = build_insert_many(predict_timestamps, PREDICT_UNIT, "predict")
+    predict_timestamps = generate_timestamps(start, end, settings.PREDICT_TIME_PERIOD, 0)
+    predict_query, predict_params = build_insert_many(predict_timestamps, settings.PREDICT_UNIT, "predict")
     execute_query(predict_query, predict_params)
 
     return "Success"
@@ -37,13 +38,13 @@ async def create_task_predict():
 async def create_task_upload():
     print("Service: create_task_upload")
     now = datetime.now()
-    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like +'" + SENSOR_NAME_QUERY + "'")
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'" + settings.SENSOR_NAME_QUERY + "'")
     start = now.strftime("%Y-%m-%d 00:00:00")
     end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
             
     for sensor in sensors:
         if sensor['NAME'] in UNIT1_TARGET_COLS:
-            timestamps = generate_timestamps(start, end, UPLOAD_TIME_PERIOD, sensor["NORMAL_VALUE"])
+            timestamps = generate_timestamps(start, end, settings.UPLOAD_TIME_PERIOD, sensor["NORMAL_VALUE"])
             query, params = build_insert_many(timestamps, sensor["ID"], "upload")
 
             execute_query(query, params)
@@ -53,7 +54,7 @@ async def create_task_upload():
 
 async def task_delete():
     print("Service: delete_task")
-    execute_query("DELETE FROM "+ TABLE_TASKS +" WHERE is_complete = 1")
+    execute_query("DELETE FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 1")
 
 def build_insert_many(timestamps, params, category):
     base = """
@@ -82,7 +83,7 @@ def build_insert_many(timestamps, params, category):
         FROM dual
         WHERE NOT EXISTS (
             SELECT 1
-            FROM {TABLE_TASKS} t
+            FROM {settings.TABLE_TASKS} t
             WHERE t.category = :category
               AND t.params = :params
               AND t.start_at = TO_DATE(:{key}, 'YYYY-MM-DD"T"HH24:MI:SS')

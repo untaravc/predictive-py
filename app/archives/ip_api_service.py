@@ -1,6 +1,6 @@
 import httpx
 from datetime import datetime
-from app.configs.ind_power_conf import BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD
+from app.configs.base_conf import settings
 
 API_TOKEN = "secret-bearer-token"
     
@@ -15,7 +15,7 @@ async def fetch_data_with_basic_auth(url: str):
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 url,
-                auth=(BASIC_AUTH_USERNAME, BASIC_AUTH_PASSWORD),
+                auth=(settings.BASIC_AUTH_USERNAME, settings.BASIC_AUTH_PASSWORD),
                 headers={"Accept": "application/json"},
             )
             response.raise_for_status()

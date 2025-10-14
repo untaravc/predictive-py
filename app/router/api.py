@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.controllers.ip_api_controller import sensor_list
+from app.controllers.ip_api_controller import sensor_list, point_seach
 from app.controllers.home_controller import home
 from app.controllers.task_controller import action_create_task_record, action_create_task_predict, action_create_task_upload, action_task_delete, action_execute_record_sample, action_execute_predict, action_execute_record_api, action_execute_upload
 from app.controllers.vibration_controller import upload_vibration_excel
@@ -9,6 +9,7 @@ router = APIRouter()
 router.add_api_route("/",home,response_model=dict,methods=["GET"])
 
 # 0. List sensor
+router.add_api_route("/v0/point-seach",point_seach,response_model=dict,methods=["GET"])
 router.add_api_route("/v0/sensors",sensor_list,response_model=dict,methods=["GET"])
 
 # 1. create task

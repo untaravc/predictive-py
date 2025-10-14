@@ -1,13 +1,14 @@
 from app.utils.oracle_db import fetch_all, execute_query, fetch_one
-from app.configs.oracle_conf import TABLE_SENSORS, TABLE_TASKS
+# from app.configs.oracle_conf import TABLE_SENSORS, TABLE_TASKS
 from app.services.generator_service import run_generator_record, run_generator_predict, build_merge_query
 from datetime import datetime, timedelta
-from app.services.ip_api_service import fetch_data_with_basic_auth
-from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTIONS, TABLE_TASKS
+from app.archives.ip_api_service import fetch_data_with_basic_auth
+# from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTIONS, TABLE_TASKS
 import urllib3
 from osisoft.pidevclub.piwebapi.pi_web_api_client import PIWebApiClient
 from osisoft.pidevclub.piwebapi.models import PIAnalysis, PIItemsStreamValues, PIStreamValues, PITimedValue, PIRequest
-from app.configs.osisof_conf import OSISOF_USER, OSISOF_PASSWORD, OSISOF_URL
+# from app.archives.osisof_conf import OSISOF_USER, OSISOF_PASSWORD, OSISOF_URL
+from app.configs.base_conf import settings
 from app.utils.helper import chunk_list
 from app.predictions.unit1_v1 import run_unit1_lstm_final
 
@@ -17,7 +18,7 @@ UPLOAD_PREDICT_DAYS=1
 RECORD_PER_SESSION=5 # berapa task yang dikerjakan salam satu schedule
 
 async def execute_record_sample():
-    tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
     print('Start execute_record_sample ', str(len(tasks)))
     
     for task in tasks:
@@ -26,18 +27,18 @@ async def execute_record_sample():
         date_to = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
         period = 5
         await run_generator_record(task["PARAMS"], date_from, date_to, period)
-        execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 2 WHERE id = :id", {"id": task["ID"]})
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2 WHERE id = :id", {"id": task["ID"]})
 
     return 'Record completed'
 
 async def execute_record_api():
     print('Start execute_record_api')
-    tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete != 1 AND category = 'record' AND PARAMS > 1000 AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete != 1 AND category = 'record' AND PARAMS > 1000 AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
     print("Task found ", str(len(tasks)))
 
     for task in tasks:
         try:
-            sensor = fetch_one("SELECT * FROM "+ TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
+            sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
             startTime = 't-'+ str(RECORD_BACK_DATE) +'d'
             endTime = '*'
             interval = '5m'
@@ -63,9 +64,9 @@ async def execute_record_api():
 
             for i, chunk in enumerate(chunk_list(insert_data, 500), start=1):
                 print(f"Processing batch {i} ({len(chunk)} records)")
-                query, params = build_merge_query(TABLE_RECORDS, sensor["ID"], chunk)
+                query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk)
                 execute_query(query, params)
-            execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
         except:
             continue
 
@@ -75,29 +76,29 @@ async def execute_record_api():
 
 async def execute_predict():
     print('Start execute_predict')
-    tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'predict' AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'predict' AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
     print('Tasks', len(tasks))
 
     for task in tasks:
         print("Generating predict for sensor ", task["PARAMS"])
         await run_unit1_lstm_final()
-        execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
 
 async def execute_upload():
     print('Start execute_upload')
     # Run Over TASK
-    tasks = fetch_all("SELECT * FROM "+ TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload' AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload' AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
 
     for task in tasks:
         print('Tasks ', task['PARAMS'])
-        sensor = fetch_one("SELECT * FROM "+ TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
+        sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
         startTime = (task["START_AT"] - timedelta(days=UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
         print("Start time ", startTime)
-        predictions = fetch_all("SELECT * FROM "+ TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS')")
+        predictions = fetch_all("SELECT * FROM "+ settings.TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS')")
         
-        client = getPIWebApiClient(OSISOF_URL, OSISOF_USER, OSISOF_PASSWORD)
+        client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         path = f"\\\\PI1\{sensor['NAME']}.prediksi"
@@ -125,7 +126,7 @@ async def execute_upload():
 
         response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
         print(response)
-        execute_query("UPDATE "+ TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
 
 # Functions ==========
 

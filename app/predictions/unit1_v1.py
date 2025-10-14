@@ -4,13 +4,13 @@ import pandas as pd
 import tensorflow as tf
 import joblib
 import os
-from app.configs.oracle_conf import TABLE_SENSORS, TABLE_PREDICTIONS, TABLE_RECORDS
+# from app.configs.oracle_conf import TABLE_SENSORS, TABLE_PREDICTIONS, TABLE_RECORDS
 from app.utils.oracle_db import fetch_all, execute_query
 from app.services.generator_service import build_merge_query
 from app.configs.unit1_conf import UNIT1_INPUT_COLS, UNIT1_TARGET_COLS
 from datetime import datetime, timedelta, timezone
 from app.utils.helper import chunk_list
-from app.configs.base_conf import SENSOR_NAME_QUERY
+from app.configs.base_conf import settings
 
 # --- Konfigurasi ---
 OUTPUT_DIR = "/Users/macbookpro/Documents/Projects/Pse/code/storage/unit1/v1"
@@ -110,7 +110,7 @@ async def run_unit1_lstm_final():
 
 def insert_update_db(array):
     print('Start input db ', len(array))
-    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like '"+SENSOR_NAME_QUERY+"'")
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like '"+settings.SENSOR_NAME_QUERY+"'")
 
     for sensor in sensors:
         sensor['list'] = []
@@ -126,13 +126,13 @@ def insert_update_db(array):
         if len(sensor['list']) > 0:
             for i, chunk in enumerate(chunk_list(sensor['list'], 500), start=1):
                 print(f"Processing batch {i} ({len(chunk)} records)")
-                query, params = build_merge_query(TABLE_PREDICTIONS, sensor["ID"], chunk)
+                query, params = build_merge_query(settings.TABLE_PREDICTIONS, sensor["ID"], chunk)
                 execute_query(query, params)
 
 async def prepare_data_input(days: int = 7):
     date_from = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     print('query sensors')
-    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE NAME like '"+SENSOR_NAME_QUERY+"'")
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like '"+settings.SENSOR_NAME_QUERY+"'")
     input_sensors_ids = []
 
     # compare with UNIT1_INPUT_COLS
@@ -140,8 +140,8 @@ async def prepare_data_input(days: int = 7):
         if sensor["NAME"] in UNIT1_INPUT_COLS:
             input_sensors_ids.append(sensor["ID"])
     
-    query_select = "SELECT " + TABLE_RECORDS +".*, "+ TABLE_SENSORS +".NAME, "+ TABLE_SENSORS +".NORMAL_VALUE FROM "+ TABLE_RECORDS 
-    query_select = query_select +" LEFT JOIN "+ TABLE_SENSORS +" ON "+ TABLE_RECORDS +".SENSOR_ID = "+ TABLE_SENSORS +".ID"
+    query_select = "SELECT " + settings.TABLE_RECORDS +".*, "+ settings.TABLE_SENSORS +".NAME, "+ settings.TABLE_SENSORS +".NORMAL_VALUE FROM "+ settings.TABLE_RECORDS 
+    query_select = query_select +" LEFT JOIN "+ settings.TABLE_SENSORS +" ON "+ settings.TABLE_RECORDS +".SENSOR_ID = "+ settings.TABLE_SENSORS +".ID"
     query_select = query_select +" WHERE SENSOR_ID IN (" + ",".join(map(str, input_sensors_ids)) + ") AND RECORD_TIME >= TO_DATE(:date_from, 'YYYY-MM-DD')"
     params = {"date_from": date_from}
 
