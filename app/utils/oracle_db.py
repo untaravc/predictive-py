@@ -1,25 +1,26 @@
 import oracledb
-from app.configs.oracle_conf import DB_USER, DB_PASSWORD, CONNECT_STRING, WALLET_LOCATION, WALLET_PASSWORD, TABLE_SENSORS
+from app.configs.oracle_conf import DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_SERVICE, TABLE_SENSORS
 
 _pool = None  # global pool instance
 
 def init_pool():
-	global _pool
-	if _pool is None:
-		_pool = oracledb.create_pool(
-			config_dir=WALLET_LOCATION,
-			user=DB_USER,
-			password=DB_PASSWORD,
-			dsn=CONNECT_STRING,
-			wallet_location=WALLET_LOCATION,
-			wallet_password=WALLET_PASSWORD
-		)
-	return _pool
+    global _pool
+    if _pool is None:
+        dsn = f"//{DB_HOST}:{DB_PORT}/{DB_SERVICE}"  # classic EZConnect syntax
+        _pool = oracledb.create_pool(
+            user=DB_USER,
+            password=DB_PASSWORD,
+            dsn=dsn,
+            min=1,
+            max=5,
+            increment=1
+        )
+    return _pool
 
 def get_connection():
-	if _pool is None:
-		init_pool()
-	return _pool.acquire()
+    if _pool is None:
+        init_pool()
+    return _pool.acquire()
 
 # ---------- Generic query helpers ----------
 def fetch_all(query, params=None):
