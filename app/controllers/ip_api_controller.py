@@ -10,7 +10,7 @@ from collections import defaultdict
 from app.configs.base_conf import settings
 from app.statics.unit1_io import unit1_in
 
-async def point_seach(query: str = None):
+async def point_search(query: str = None):
     print("Point search...", settings.SENSOR_NAME_QUERY_STAR)
     if query == None:
         query = settings.SENSOR_NAME_QUERY_STAR
@@ -62,10 +62,10 @@ async def point_seach(query: str = None):
 async def point_interpolated_sample(request: Request):
     query = dict(request.query_params)
 
-    base_url = URL_STREAM_INTERPOLATED
+    base_url = settings.URL_STREAM_INTERPOLATED
     url = base_url + "/" + query["webId"] + "/interpolated?startTime=" + query["startTime"] + "&endTime=" + query["endTime"] + "&interval=" + query["interval"]
 
-    sensor = fetch_one("SELECT * FROM "+ TABLE_SENSORS +" WHERE "+ TABLE_SENSORS +".WEB_ID = :web_id", {"web_id": query["webId"]})
+    sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE "+ settings.TABLE_SENSORS +".WEB_ID = :web_id", {"web_id": query["webId"]})
     if(sensor == None):
         return {
             "success": False,
@@ -82,7 +82,7 @@ async def point_interpolated_sample(request: Request):
         value_num = val["Value"] if isinstance(val, dict) else val
 
         has_record = fetch_one(
-            "SELECT * FROM " + TABLE_RECORDS +
+            "SELECT * FROM " + settings.TABLE_RECORDS +
             " WHERE sensor_id = :sensor_id "
             "AND record_time = TO_DATE(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS')",
             {
@@ -93,7 +93,7 @@ async def point_interpolated_sample(request: Request):
 
         if(has_record == None):
             execute_query(
-                "INSERT INTO " + TABLE_RECORDS + 
+                "INSERT INTO " + settings.TABLE_RECORDS + 
                 " (SENSOR_ID, RECORD_TIME, VALUE, CREATED_AT, UPDATED_AT) " +
                 "VALUES (:sensor_id, TO_DATE(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS'), :value, SYSDATE, SYSDATE)",
                 {
@@ -104,7 +104,7 @@ async def point_interpolated_sample(request: Request):
             )
         else:
             execute_query(
-                "UPDATE "+ TABLE_RECORDS +" SET VALUE = :value, UPDATED_AT = SYSDATE WHERE ID = :id",
+                "UPDATE "+ settings.TABLE_RECORDS +" SET VALUE = :value, UPDATED_AT = SYSDATE WHERE ID = :id",
                 {"value": value_num, "id": has_record["ID"]}
             )
 
@@ -115,7 +115,7 @@ async def point_interpolated_sample(request: Request):
 
 async def collect_interpolated(request: Request):
     # sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" FETCH FIRST 1 ROWS ONLY")
-    sensors = fetch_all("SELECT * FROM "+ TABLE_SENSORS +" WHERE WEB_ID = 'F1DP2dBunJOlC0ifiqTkEvHTBA3T0CAAUEkxXFNLUjEuVEhSVVNUIEJSRyAgTUVUQUwgMSBVMQ'")
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE WEB_ID = 'F1DP2dBunJOlC0ifiqTkEvHTBA3T0CAAUEkxXFNLUjEuVEhSVVNUIEJSRyAgTUVUQUwgMSBVMQ'")
     startTime = "t-7d"
     endTime = "*"
     interval = "5m"
@@ -128,7 +128,7 @@ async def collect_interpolated(request: Request):
         interval = request.query_params.get("interval")
 
     for sensor in sensors:
-        base_url = URL_STREAM_INTERPOLATED
+        base_url = settings.URL_STREAM_INTERPOLATED
         url = base_url + "/" + sensor["WEB_ID"] + "/interpolated?startTime=" + startTime + "&endTime=" + endTime + "&interval=" + interval
 
         response = await fetch_data_with_basic_auth(url)
@@ -141,7 +141,7 @@ async def collect_interpolated(request: Request):
             value_num = val["Value"] if isinstance(val, dict) else val
 
             has_record = fetch_one(
-                "SELECT * FROM " + TABLE_RECORDS +
+                "SELECT * FROM " + settings.TABLE_RECORDS +
                 " WHERE sensor_id = :sensor_id "
                 "AND record_time = TO_DATE(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS')",
                 {
@@ -152,7 +152,7 @@ async def collect_interpolated(request: Request):
 
             if(has_record == None):
                 execute_query(
-                    "INSERT INTO " + TABLE_RECORDS + 
+                    "INSERT INTO " + settings.TABLE_RECORDS + 
                     " (SENSOR_ID, RECORD_TIME, VALUE, CREATED_AT, UPDATED_AT) " +
                     "VALUES (:sensor_id, TO_DATE(:record_time, 'YYYY-MM-DD\"T\"HH24:MI:SS'), :value, SYSDATE, SYSDATE)",
                     {
@@ -163,7 +163,7 @@ async def collect_interpolated(request: Request):
                 )
             else:
                 execute_query(
-                    "UPDATE "+ TABLE_RECORDS +" SET VALUE = :value, UPDATED_AT = SYSDATE WHERE ID = :id",
+                    "UPDATE "+ settings.TABLE_RECORDS +" SET VALUE = :value, UPDATED_AT = SYSDATE WHERE ID = :id",
                     {"value": value_num, "id": has_record["ID"]}
                 )
 
@@ -201,7 +201,7 @@ async def consume_unit3_lstm():
     }
 
 async def sensor_list(request: Request):
-    query = "SELECT * FROM "+ TABLE_SENSORS
+    query = "SELECT * FROM "+ settings.TABLE_SENSORS
 
     if(request.query_params.get("q") != None):
         query += " WHERE NAME like :q"
@@ -217,7 +217,7 @@ async def sensor_list(request: Request):
 
 async def predictions(request: Request):
 
-    query = "SELECT p.SENSOR_ID, p.RECORD_TIME, p.VALUE, s.NAME FROM "+ TABLE_PREDICTIONS + " p left join "+ TABLE_SENSORS +" s on p.SENSOR_ID = s.ID"
+    query = "SELECT p.SENSOR_ID, p.RECORD_TIME, p.VALUE, s.NAME FROM "+ settings.TABLE_PREDICTIONS + " p left join "+ settings.TABLE_SENSORS +" s on p.SENSOR_ID = s.ID"
 
     query_where = []
     # if(request.query_params.get("sensorId") != None):

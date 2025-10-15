@@ -4,7 +4,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.services.task_service import create_task_record, create_task_predict, create_task_upload, task_delete
 from app.services.task_execute_service import execute_record_api, execute_upload, execute_predict
-from app.controllers.ip_api_controller import point_seach
+from app.controllers.ip_api_controller import point_search
 from dotenv import load_dotenv
 import os
 from app.configs.base_conf import settings
@@ -13,7 +13,7 @@ load_dotenv()
 scheduler = AsyncIOScheduler()
 
 async def lifespan(app: FastAPI):
-    await point_seach()
+    # await point_search()
     scheduler.start()
     if settings.RUN_SCHEDULER == "true":
         if not scheduler.get_job("execute_record_api"):
@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
         if not scheduler.get_job("create_task_record"):
             scheduler.add_job(
                 create_task_record,
-                CronTrigger.from_crontab("0 0 * * *"),
+                CronTrigger.from_crontab("0 0 * * *"), # daily at 00:00
                 id="create_task_record",
                 replace_existing=True
             )
@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
         if not scheduler.get_job("create_task_predict"):
             scheduler.add_job(
                 create_task_predict,
-                CronTrigger.from_crontab("0 0 * * *"),
+                CronTrigger.from_crontab("0 0 * * *"), # daily at 00:00
                 id="create_task_predict",
                 replace_existing=True
             )
@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
         if not scheduler.get_job("create_task_upload"):
             scheduler.add_job(
                 create_task_upload,
-                CronTrigger.from_crontab("0 0 * * *"),
+                CronTrigger.from_crontab("0 0 * * *"), # daily at 00:00
                 id="create_task_upload",
                 replace_existing=True
             )

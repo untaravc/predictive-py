@@ -6,7 +6,7 @@ _pool = None  # global pool instance
 def init_pool():
     global _pool
     oracledb.defaults.thin = True
-    print(settings)
+    # print(settings)
     if _pool is None:
         # dsn = f"//{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"  # classic EZConnect syntax
         dsn = f"{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"
@@ -67,9 +67,10 @@ def test_connection():
 	try:
 		result = fetch_one("SELECT * FROM " + settings.TABLE_SENSORS)
 		if result:
-			print(f"Connected successfully! Query result: {result[0]}")
+			print(f"Database Connected successfully!")
 		else: 
 			print("No data found")
 			
 	except oracledb.Error as e:
 		print(f"Could not connect to the database - Error occurred: {str(e)}")
+		print("DB Service: ",settings.ORACLE_DB_SERVICE)
