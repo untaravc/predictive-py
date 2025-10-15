@@ -6,7 +6,7 @@ _pool = None  # global pool instance
 def init_pool():
     global _pool
     oracledb.defaults.thin = True
-    print("is_thin_mode =", oracledb.is_thin_mode())
+    print(settings)
     if _pool is None:
         dsn = f"//{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"  # classic EZConnect syntax
         _pool = oracledb.create_pool(
