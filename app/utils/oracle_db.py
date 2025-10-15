@@ -8,7 +8,9 @@ def init_pool():
     oracledb.defaults.thin = True
     print(settings)
     if _pool is None:
-        dsn = f"//{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"  # classic EZConnect syntax
+        # dsn = f"//{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"  # classic EZConnect syntax
+        dsn = f"{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"
+
         _pool = oracledb.create_pool(
             user=settings.ORACLE_DB_USER,
             password=settings.ORACLE_DB_PASSWORD,
