@@ -13,23 +13,16 @@ from app.utils.helper import chunk_list
 from app.configs.base_conf import settings
 
 # --- Konfigurasi ---
-OUTPUT_DIR = "/Users/macbookpro/Documents/Projects/Pse/code/storage/unit1/v1"
-MODEL_PATH = os.path.join(OUTPUT_DIR, "final_lstm_model.keras")
-SCALER_X_PATH = os.path.join(OUTPUT_DIR, "scaler_X.save")
-SCALER_Y_PATH = os.path.join(OUTPUT_DIR, "scaler_y.save")
-DATA_PATH = os.path.join(OUTPUT_DIR, "Dataset.xlsx")
-TIMESTEPS = 2016
-HORIZON = 2016
-PREPARE_DATA = 7
+
 
 async def run_unit1_lstm_final():
     version = datetime.now().strftime("%Y%m%d%H%M%S")
 # --- 1. Load Model dan Scaler ---
     print("Loading model and scalers...")
     # Load model. `compile=False` mempercepat loading karena kita tidak akan training lagi.
-    model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-    scaler_X = joblib.load(SCALER_X_PATH)
-    scaler_y = joblib.load(SCALER_Y_PATH)
+    model = tf.keras.models.load_model(settings.MODEL_PATH, compile=False)
+    scaler_X = joblib.load(settings.SCALER_X_PATH)
+    scaler_y = joblib.load(settings.SCALER_Y_PATH)
     print("Model and scalers loaded successfully. [1]")
 
     # --- 2. Siapkan Data Input untuk Prediksi ---
@@ -38,8 +31,8 @@ async def run_unit1_lstm_final():
     # sebagai input untuk memprediksi 25 periode ke depan.
     # GANTI BAGIAN INI DENGAN DATA ASLI ANDA
     # df = pd.read_excel(DATA_PATH, index_col=0, parse_dates=True)
-    df = await prepare_data_input(PREPARE_DATA)
-    df.to_csv(os.path.join(OUTPUT_DIR, "Dataset_"+ version +".csv"))
+    df = await prepare_data_input(settings.PREPARE_DATA)
+    df.to_csv(os.path.join(settings.OUTPUT_DIR, "Dataset_"+ version +".csv"))
 
     # df = df.sort_index()
     # df.replace('I/O Timeout', np.nan, inplace=True)
@@ -48,10 +41,10 @@ async def run_unit1_lstm_final():
     # df = df.interpolate(method="time", limit_direction="both").ffill().bfill()
 
     # Ambil 100 baris data terakhir (sesuai TIMESTEPS)
-    if len(df) < TIMESTEPS:
-        raise ValueError(f"Data tidak cukup. Butuh minimal {TIMESTEPS} baris, tapi hanya ada {len(df)}.")
+    if len(df) < settings.TIMESTEPS:
+        raise ValueError(f"Data tidak cukup. Butuh minimal {settings.TIMESTEPS} baris, tapi hanya ada {len(df)}.")
 
-    last_window_df = df[UNIT1_INPUT_COLS].iloc[-TIMESTEPS:]
+    last_window_df = df[UNIT1_INPUT_COLS].iloc[-settings.TIMESTEPS:]
     print(f"Menggunakan data dari {last_window_df.index.min()} hingga {last_window_df.index.max()} untuk prediksi.")
 
     # --- 3. Normalisasi dan Reshape Input ---
@@ -63,7 +56,7 @@ async def run_unit1_lstm_final():
 
     input_for_model = np.expand_dims(last_window_scaled, axis=0)
     print("Input shape for model:", input_for_model.shape)
-    print("Input shape should be model: 1," + str(TIMESTEPS) + "," + str(len(UNIT1_INPUT_COLS)))
+    print("Input shape should be model: 1," + str(settings.TIMESTEPS) + "," + str(len(UNIT1_INPUT_COLS)))
 
     # # --- 4. Lakukan Prediksi ---
     # print("Making prediction...")
@@ -73,7 +66,7 @@ async def run_unit1_lstm_final():
     # Hasil prediksi masih dalam bentuk flat (1, HORIZON * n_targets) dan ternormalisasi
     # Reshape hasil prediksi menjadi (HORIZON, n_targets)
     n_targets = len(UNIT1_TARGET_COLS)
-    prediction_scaled = prediction_scaled_flat.reshape(HORIZON, n_targets)
+    prediction_scaled = prediction_scaled_flat.reshape(settings.HORIZON, n_targets)
 
     # Kembalikan hasil prediksi ke skala aslinya MENGGUNAKAN SCALER_Y
     prediction_original_scale = scaler_y.inverse_transform(prediction_scaled)
@@ -81,12 +74,12 @@ async def run_unit1_lstm_final():
     # Buat DataFrame untuk hasil prediksi agar mudah dibaca
     last_timestamp = last_window_df.index[-1]
     # Asumsikan frekuensi data adalah 5 menit ("5T")
-    forecast_timestamps = pd.date_range(start=last_timestamp, periods=HORIZON + 1, freq="5T")[1:]
+    forecast_timestamps = pd.date_range(start=last_timestamp, periods=settings.HORIZON + 1, freq="5T")[1:]
 
     forecast_df = pd.DataFrame(prediction_original_scale, index=forecast_timestamps, columns=UNIT1_TARGET_COLS)
 
     print( "Shape hasil prediksi: ", forecast_df.shape)
-    forecast_df.to_csv(os.path.join(OUTPUT_DIR, "results_"+ version +".csv"))
+    forecast_df.to_csv(os.path.join(settings.OUTPUT_DIR, "results_"+ version +".csv"))
 
     # Reset index so timestamp becomes a column
     df_reset = forecast_df.reset_index().rename(columns={"index": "Timestamp"})
@@ -105,7 +98,6 @@ async def run_unit1_lstm_final():
 
     return {
         "status": "success",
-        "message": result[0]
     }
 
 def insert_update_db(array):
@@ -130,7 +122,13 @@ def insert_update_db(array):
                 execute_query(query, params)
 
 async def prepare_data_input(days: int = 7):
-    date_from = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+    now = datetime.now()
+
+    if settings.TIME_PRETEND != "":
+        now = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
+
+    date_to = now.strftime("%Y-%m-%d")
+    date_from = (now - timedelta(days=days)).strftime("%Y-%m-%d")
     print('query sensors')
     sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like '"+settings.SENSOR_NAME_QUERY+"'")
     input_sensors_ids = []
@@ -140,17 +138,18 @@ async def prepare_data_input(days: int = 7):
         if sensor["NAME"] in UNIT1_INPUT_COLS:
             input_sensors_ids.append(sensor["ID"])
     
-    query_select = "SELECT " + settings.TABLE_RECORDS +".*, "+ settings.TABLE_SENSORS +".NAME, "+ settings.TABLE_SENSORS +".NORMAL_VALUE FROM "+ settings.TABLE_RECORDS 
+    query_select = "SELECT " + settings.TABLE_RECORDS +".*, "+ settings.TABLE_SENSORS +".NAME FROM "+ settings.TABLE_RECORDS 
     query_select = query_select +" LEFT JOIN "+ settings.TABLE_SENSORS +" ON "+ settings.TABLE_RECORDS +".SENSOR_ID = "+ settings.TABLE_SENSORS +".ID"
     query_select = query_select +" WHERE SENSOR_ID IN (" + ",".join(map(str, input_sensors_ids)) + ") AND RECORD_TIME >= TO_DATE(:date_from, 'YYYY-MM-DD')"
-    params = {"date_from": date_from}
+    query_select = query_select +" AND RECORD_TIME < TO_DATE(:date_to, 'YYYY-MM-DD') + INTERVAL '1' DAY"
+    params = {"date_from": date_from, "date_to": date_to}
 
     print('query records')
     data_records = fetch_all(query_select, params)
 
     print('data_records count: ', len(data_records))
 
-    # --- 1️⃣ Convert to DataFrame ---
+   # --- 1️⃣ Convert to DataFrame ---
     df_raw = pd.DataFrame(data_records)
     df_raw["RECORD_TIME"] = pd.to_datetime(df_raw["RECORD_TIME"])
     df_raw["VALUE"] = df_raw["VALUE"].astype(float)
@@ -159,36 +158,34 @@ async def prepare_data_input(days: int = 7):
     start_time = pd.Timestamp(date_from)
     time_index = pd.date_range(start=start_time, periods=2016, freq="5min")
 
-    # --- 3️⃣ Create mapping from sensor to its NORMAL_VALUE ---
-    normal_value_map = df_raw.groupby("NAME")["NORMAL_VALUE"].first().to_dict()
-
-    # --- 4️⃣ Pivot data into time × sensor ---
+    # --- 3️⃣ Pivot data into time × sensor ---
     pivot_df = df_raw.pivot_table(index="RECORD_TIME", columns="NAME", values="VALUE")
 
-    # --- 5️⃣ Reindex to full time range ---
+    # --- 4️⃣ Reindex to full time range (introduce NaNs for missing times) ---
     pivot_df = pivot_df.reindex(time_index)
 
-    # --- 6️⃣ Ensure all sensors exist ---
+    # --- 5️⃣ Ensure all sensors exist ---
     for col in UNIT1_INPUT_COLS:
         if col not in pivot_df.columns:
             pivot_df[col] = np.nan
 
-    # --- 7️⃣ Forward-fill missing values over time ---
-    pivot_df = pivot_df.sort_index().fillna(method="ffill")
+    # --- 6️⃣ Fill missing data: forward-fill, then fill remaining NaN with 0 ---
+    pivot_df = pivot_df.sort_index().fillna(method="ffill").fillna(0)
 
-    # --- 8️⃣ Fill completely missing sensors with NORMAL_VALUE ---
-    for col in UNIT1_INPUT_COLS:
-        if pivot_df[col].isna().all():
-            pivot_df[col] = normal_value_map.get(col, 0.0)
-
-    # --- 9️⃣ Fill any remaining NaN (like at start) with NORMAL_VALUE ---
-    for col in UNIT1_INPUT_COLS:
-        pivot_df[col] = pivot_df[col].fillna(normal_value_map.get(col, 0.0))
-
-    # --- 🔟 Reorder columns to match UNIT1_INPUT_COLS ---
+    # --- 7️⃣ Reorder columns to match UNIT1_INPUT_COLS ---
     pivot_df = pivot_df[UNIT1_INPUT_COLS]
+
+    pivot_df = fill_zero_with_last_valid(pivot_df).fillna(0)
 
     # ✅ Final DataFrame same structure as pd.read_excel(DATA_PATH, index_col=0, parse_dates=True)
     df = pivot_df.copy()
 
     return df
+
+def fill_zero_with_last_valid(df):
+    df_filled = df.copy()
+    for col in df.columns:
+        s = df_filled[col].replace(0, np.nan)
+        s = s.ffill()
+        df_filled[col] = s
+    return df_filled

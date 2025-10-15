@@ -3,21 +3,19 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.services.task_service import create_task_record, create_task_predict, create_task_upload, task_delete
-from app.services.task_execute_service import execute_record_api, execute_record_sample
+from app.services.task_execute_service import execute_record_api, execute_upload, execute_predict
 from app.controllers.ip_api_controller import point_seach
 from dotenv import load_dotenv
 import os
 from app.configs.base_conf import settings
 
 load_dotenv()
-RUN_SCHEDULER = os.getenv("RUN_SCHEDULER")
-
 scheduler = AsyncIOScheduler()
 
 async def lifespan(app: FastAPI):
-    await point_seach()
+    # await point_seach()
     scheduler.start()
-    if RUN_SCHEDULER == "true":
+    if settings.RUN_SCHEDULER == "true":
         # if not scheduler.get_job("execute_record_api"):
         #     scheduler.add_job(
         #         execute_record_api,
@@ -25,6 +23,22 @@ async def lifespan(app: FastAPI):
         #         id="execute_record_api",
         #         replace_existing=True
         #     )
+
+        if not scheduler.get_job("execute_upload"):
+            scheduler.add_job(
+                execute_upload,
+                CronTrigger.from_crontab("* * * * *"), # daily
+                id="execute_upload",
+                replace_existing=True
+            )
+        
+        if not scheduler.get_job("execute_predict"):
+            scheduler.add_job(
+                execute_predict,
+                CronTrigger.from_crontab("* * * * *"), # daily
+                id="execute_predict",
+                replace_existing=True
+            )
 
         # if not scheduler.get_job("create_task_predict"):
         #     scheduler.add_job(

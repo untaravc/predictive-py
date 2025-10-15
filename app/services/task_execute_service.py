@@ -1,21 +1,13 @@
 from app.utils.oracle_db import fetch_all, execute_query, fetch_one
-# from app.configs.oracle_conf import TABLE_SENSORS, TABLE_TASKS
 from app.services.generator_service import run_generator_record, run_generator_predict, build_merge_query
 from datetime import datetime, timedelta
 from app.archives.ip_api_service import fetch_data_with_basic_auth
-# from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS, TABLE_PREDICTIONS, TABLE_TASKS
 import urllib3
 from osisoft.pidevclub.piwebapi.pi_web_api_client import PIWebApiClient
 from osisoft.pidevclub.piwebapi.models import PIAnalysis, PIItemsStreamValues, PIStreamValues, PITimedValue, PIRequest
-# from app.archives.osisof_conf import OSISOF_USER, OSISOF_PASSWORD, OSISOF_URL
 from app.configs.base_conf import settings
 from app.utils.helper import chunk_list
 from app.predictions.unit1_v1 import run_unit1_lstm_final
-
-RECORD_BACK_DATE=7 # berapa hari kebelakang dalam pengambilan data record
-INTERPOLATED_URL="https://pivision.plnindonesiapower.co.id/piwebapi/streams/"
-UPLOAD_PREDICT_DAYS=1
-RECORD_PER_SESSION=5 # berapa task yang dikerjakan salam satu schedule
 
 async def execute_record_sample():
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
@@ -23,7 +15,7 @@ async def execute_record_sample():
     
     for task in tasks:
         print("Generating record for sensor ", task["PARAMS"])
-        date_from = (task["START_AT"] - timedelta(days=RECORD_BACK_DATE)).strftime("%Y-%m-%d %H:%M:%S")
+        date_from = (task["START_AT"] - timedelta(days=settings.RECORD_BACK_DATE)).strftime("%Y-%m-%d %H:%M:%S")
         date_to = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
         period = 5
         await run_generator_record(task["PARAMS"], date_from, date_to, period)
@@ -33,17 +25,29 @@ async def execute_record_sample():
 
 async def execute_record_api():
     print('Start execute_record_api')
-    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete != 1 AND category = 'record' AND PARAMS > 1000 AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete != 1 AND category = 'record' AND PARAMS > 1000 AND START_AT < SYSDATE FETCH FIRST " + str(settings.RECORD_PER_SESSION) + " ROWS ONLY")
     print("Task found ", str(len(tasks)))
 
     for task in tasks:
         try:
             sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
-            startTime = 't-'+ str(RECORD_BACK_DATE) +'d'
+            startTime = 't-'+ str(settings.RECORD_BACK_DATE) +'d'
             endTime = '*'
             interval = '5m'
 
-            url = INTERPOLATED_URL + sensor["WEB_ID"] + "/interpolated?startTime=" + startTime + "&endTime=" + endTime + "&interval=" + interval
+            if settings.TIME_PRETEND != "":
+                target = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
+                now = datetime.now()
+                selisih = now - target
+                hari = selisih.days
+
+                startTime = 't-' + str(hari + settings.RECORD_BACK_DATE) + 'd'
+                endTime = 't-' + str(hari) + 'd'
+                interval = '5m'
+
+            print('Start time ' + startTime + ' end time ' + endTime + ' interval ' + interval)
+
+            url = settings.INTERPOLATED_URL + sensor["WEB_ID"] + "/interpolated?startTime=" + startTime + "&endTime=" + endTime + "&interval=" + interval
             result = await fetch_data_with_basic_auth(url)
             items = result['result']['Items']
             print('Result api ' + sensor["NAME"] + ' ' + str(sensor['ID']) + ': '  + str(len(items)) + ' items')
@@ -65,8 +69,9 @@ async def execute_record_api():
             for i, chunk in enumerate(chunk_list(insert_data, 500), start=1):
                 print(f"Processing batch {i} ({len(chunk)} records)")
                 query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk)
+
                 execute_query(query, params)
-            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
         except:
             continue
 
@@ -82,7 +87,7 @@ async def execute_predict():
     for task in tasks:
         print("Generating predict for sensor ", task["PARAMS"])
         await run_unit1_lstm_final()
-        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
 
@@ -94,7 +99,7 @@ async def execute_upload():
     for task in tasks:
         print('Tasks ', task['PARAMS'])
         sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
-        startTime = (task["START_AT"] - timedelta(days=UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+        startTime = (task["START_AT"] - timedelta(days=settings.UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
         print("Start time ", startTime)
         predictions = fetch_all("SELECT * FROM "+ settings.TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS')")
         

@@ -54,6 +54,7 @@ def execute_query(query, params=None):
 				return cur.rowcount
 	except Exception as e:
 		print("❌ Error executing query")
+		print(e)
 		raise
 
 # ---------- Quick test ----------

@@ -89,7 +89,7 @@ def process_excel(df):
         df["Timestamp"] = pd.to_datetime(df["Timestamp"])
 
         # Format to Oracle-style: 2025-07-01T00:00:00Z
-        df["Timestamp"] = df["Timestamp"].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        df["Timestamp"] = df["Timestamp"].dt.strftime("%Y-%m-%dT%H:%M:%S")
 
         # Melt to long format
         long_df = df.melt(id_vars=["Timestamp"], var_name="Name", value_name="Value")
@@ -97,7 +97,7 @@ def process_excel(df):
     # Convert to list of dicts
     flattened_data.extend(long_df.to_dict(orient="records"))
     
-    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'" + settings.SENSOR_NAME_QUERY_VIBRATION + "'")
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'" + settings.SENSOR_NAME_QUERY_VIBRATION + "' AND IS_ACTIVE = 1 AND ID < 1000")
     for sensor in sensors:
         filtered = [item for item in flattened_data if item["Name"] == sensor["NAME"]]
         for i, chunk in enumerate(chunk_list(filtered, 500), start=1):
@@ -105,7 +105,7 @@ def process_excel(df):
             query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk)
             execute_query(query, params)
 
-    return len(sensor)
+    return len(sensors)
 
 ## Functions ======
 def chunk_list(data, size):
