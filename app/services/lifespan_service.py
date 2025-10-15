@@ -13,21 +13,21 @@ load_dotenv()
 scheduler = AsyncIOScheduler()
 
 async def lifespan(app: FastAPI):
-    # await point_seach()
+    await point_seach()
     scheduler.start()
     if settings.RUN_SCHEDULER == "true":
-        # if not scheduler.get_job("execute_record_api"):
-        #     scheduler.add_job(
-        #         execute_record_api,
-        #         CronTrigger.from_crontab("* * * * *"), # daily
-        #         id="execute_record_api",
-        #         replace_existing=True
-        #     )
+        if not scheduler.get_job("execute_record_api"):
+            scheduler.add_job(
+                execute_record_api,
+                CronTrigger.from_crontab("* * * * *"), # every minute
+                id="execute_record_api",
+                replace_existing=True
+            )
 
         if not scheduler.get_job("execute_upload"):
             scheduler.add_job(
                 execute_upload,
-                CronTrigger.from_crontab("* * * * *"), # daily
+                CronTrigger.from_crontab("* * * * *"), # every minute
                 id="execute_upload",
                 replace_existing=True
             )
@@ -35,26 +35,34 @@ async def lifespan(app: FastAPI):
         if not scheduler.get_job("execute_predict"):
             scheduler.add_job(
                 execute_predict,
-                CronTrigger.from_crontab("* * * * *"), # daily
+                CronTrigger.from_crontab("* * * * *"), # every minute
                 id="execute_predict",
                 replace_existing=True
             )
 
-        # if not scheduler.get_job("create_task_predict"):
-        #     scheduler.add_job(
-        #         create_task_predict,
-        #         CronTrigger.from_crontab("* * * * *"),
-        #         id="create_task_predict",
-        #         replace_existing=True
-        #     )
+        if not scheduler.get_job("create_task_record"):
+            scheduler.add_job(
+                create_task_record,
+                CronTrigger.from_crontab("0 0 * * *"),
+                id="create_task_record",
+                replace_existing=True
+            )
 
-        # if not scheduler.get_job("create_task_upload"):
-        #     scheduler.add_job(
-        #         create_task_upload,
-        #         CronTrigger.from_crontab("* * * * *"),
-        #         id="create_task_upload",
-        #         replace_existing=True
-        #     )
+        if not scheduler.get_job("create_task_predict"):
+            scheduler.add_job(
+                create_task_predict,
+                CronTrigger.from_crontab("0 0 * * *"),
+                id="create_task_predict",
+                replace_existing=True
+            )
+
+        if not scheduler.get_job("create_task_upload"):
+            scheduler.add_job(
+                create_task_upload,
+                CronTrigger.from_crontab("0 0 * * *"),
+                id="create_task_upload",
+                replace_existing=True
+            )
         
         # if not scheduler.get_job("create_delete_task"):
         #     scheduler.add_job(
@@ -63,15 +71,6 @@ async def lifespan(app: FastAPI):
         #         id="create_delete_task",
         #         replace_existing=True
         #     )
-        
-        # if not scheduler.get_job("execute_record_api"):
-        #     scheduler.add_job(
-        #         execute_record_api,
-        #         CronTrigger.from_crontab("* * * * *"), # every minute
-        #         id="execute_record_api",
-        #         replace_existing=True
-        #     )
-
         
         print("🚀 Scheduler started")
 
