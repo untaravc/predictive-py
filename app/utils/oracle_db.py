@@ -9,15 +9,16 @@ def init_pool():
     # print(settings)
     if _pool is None:
         # dsn = f"//{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"  # classic EZConnect syntax
-        dsn = f"{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"
+        # dsn = f"{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"
+        dsn = oracledb.makedsn(settings.ORACLE_DB_HOST, settings.ORACLE_DB_PORT, service_name=settings.ORACLE_DB_SERVICE)
 
         _pool = oracledb.create_pool(
             user=settings.ORACLE_DB_USER,
             password=settings.ORACLE_DB_PASSWORD,
             dsn=dsn,
-            min=1,
-            max=5,
-            increment=1
+            # min=1,
+            # max=5,
+            # increment=1
         )
     return _pool
 
