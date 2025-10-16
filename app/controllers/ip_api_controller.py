@@ -19,15 +19,9 @@ async def point_search(query: str = None):
     url = base_url +"?dataserverwebid="+settings.DATA_SERVER_WEB_ID+"&query=" + query
 
     response = await fetch_data_with_basic_auth(url)
-
-    if(response["success"] == False):
-        return {
-            "success": False,
-            "error": response["error"]
-        }
     
     items = response['result']['Items']
-
+    print("Items found: ", str(len(items)))
     for i in range(len(items)):
         status = 1
         if "prediksi" in items[i]["Name"].lower() or "tes" in items[i]["Name"].lower():
@@ -35,6 +29,7 @@ async def point_search(query: str = None):
         # insert to db if not exist
         has_record = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE "+ settings.TABLE_SENSORS +".ID = :id", {"id": items[i]["Id"]})
         if(has_record == None):
+            print("Inserting sensor ", items[i]["Name"])
             execute_query(
                 "INSERT INTO "+ settings.TABLE_SENSORS +" (ID, WEB_ID, NAME, PATH, DESCRIPTOR, IS_ACTIVE, CREATED_AT, UPDATED_AT) VALUES (:id, :web_id, :name, :path, :descriptor, :status, SYSDATE, SYSDATE)",
                 {"id": items[i]["Id"], "web_id": items[i]["WebId"], "name": items[i]["Name"], "path": items[i]["Path"] ,"descriptor": items[i]["Descriptor"], "status": status}
@@ -49,6 +44,7 @@ async def point_search(query: str = None):
     for i in range(len(unit1)):
         sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE "+ settings.TABLE_SENSORS +".ID = :id", {"id": unit1[i]["id"]})
         if(sensor == None):
+            print("Inserting sensor ", unit1[i]["name"])
             execute_query(
                 "INSERT INTO "+ settings.TABLE_SENSORS +" (ID, WEB_ID, NAME, PATH, DESCRIPTOR, IS_ACTIVE, CREATED_AT, UPDATED_AT) VALUES (:id, :web_id, :name, :path, :descriptor, :status, SYSDATE, SYSDATE)",
                 {"id": unit1[i]["id"], "web_id": "", "name": unit1[i]["name"], "path": "" ,"descriptor": "", "status": 1}
