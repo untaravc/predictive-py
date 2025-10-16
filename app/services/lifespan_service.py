@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
         if not scheduler.get_job("execute_predict"):
             scheduler.add_job(
                 execute_predict,
-                CronTrigger.from_crontab("* * * * *"), # every minute
+                CronTrigger.from_crontab("0 * * * *"), # every hours
                 id="execute_predict",
                 replace_existing=True
             )

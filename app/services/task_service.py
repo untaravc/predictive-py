@@ -3,6 +3,10 @@ from app.services.generator_service import generate_timestamps
 from datetime import datetime, timedelta
 from app.configs.unit1_conf import UNIT1_TARGET_COLS
 from app.configs.base_conf import settings
+from app.services.vibration_proccess_service import process_excel
+import os
+import pandas as pd
+import re
 
 # Membuat task untuk pemanggilan API Record tiap sensor
 # Membuat task untuk menjalankan model predict
@@ -38,6 +42,33 @@ async def create_task_predict():
     predict_timestamps = generate_timestamps(start, end, settings.PREDICT_TIME_PERIOD, 0)
     predict_query, predict_params = build_insert_many(predict_timestamps, settings.PREDICT_UNIT, "predict")
     execute_query(predict_query, predict_params)
+
+    return "Success"
+
+async def update_vibration():
+    folder_path = "/Users/macbookpro/Documents/Projects/Pse/code/storage/vibrations/unit1"
+
+    for root, dirs, files in os.walk(folder_path):
+        for file in files:
+            print("File: ", file)
+
+            file_numbers = re.findall(r'\d+', file)  # find all digit groups
+            if file_numbers:
+                number_str = file_numbers[0]  # "202507"
+                file_number = int(number_str)
+
+            has_processed = fetch_one("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE PARAMS = :file_number AND CATEGORY = 'vibration'", {"file_number": file_number})
+            if has_processed is not None:
+                print("File already processed")
+                continue
+            file_path = os.path.join(root, file)
+            df = pd.read_excel(file_path)
+
+            process_excel(df)
+
+            query = "INSERT INTO " + settings.TABLE_TASKS + " (category, params, start_at, is_complete, created_at, updated_at) VALUES ('vibration', :file_number, SYSDATE, 1, SYSDATE, SYSDATE)"
+            params = {"file_number": file_number}
+            execute_query(query, params)
 
     return "Success"
 

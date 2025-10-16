@@ -129,7 +129,7 @@ async def prepare_data_input(days: int = 7):
 
     date_to = now.strftime("%Y-%m-%d")
     date_from = (now - timedelta(days=days)).strftime("%Y-%m-%d")
-    print('query sensors')
+    print('date from ', date_from, ' date to ', date_to)
     sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like '"+settings.SENSOR_NAME_QUERY+"'")
     input_sensors_ids = []
 

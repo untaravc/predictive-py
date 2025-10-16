@@ -94,14 +94,15 @@ async def execute_predict():
 async def execute_upload():
     print('Start execute_upload')
     # Run Over TASK
-    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload' AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload' AND START_AT < SYSDATE ORDER BY START_AT FETCH FIRST " + str(settings.UPLOAD_PERSESION) + " ROWS ONLY")
 
     for task in tasks:
         print('Tasks ', task['PARAMS'])
         sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
-        startTime = (task["START_AT"] - timedelta(days=settings.UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
-        print("Start time ", startTime)
-        predictions = fetch_all("SELECT * FROM "+ settings.TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS')")
+        startTime = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
+        endTime = (task["START_AT"] + timedelta(days=settings.UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+        print("Start time ", startTime, " end time ", endTime)
+        predictions = fetch_all("SELECT * FROM "+ settings.TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS') AND RECORD_TIME <= TO_DATE('" + endTime + "', 'YYYY-MM-DD HH24:MI:SS')")
         
         client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -131,7 +132,7 @@ async def execute_upload():
 
         response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
         print(response)
-        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1 WHERE id = :id", {"id": task["ID"]})
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
 # Functions ==========
 

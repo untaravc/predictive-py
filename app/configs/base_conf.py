@@ -12,10 +12,10 @@ class Settings(BaseSettings):
     UPLOAD_PREDICT_DAYS: int=7
 
     # Berapa task RECORD yang dikerjakan salam satu schedule. rekemdasi 5
-    RECORD_PER_SESSION: int=5
+    RECORD_PER_SESSION: int=8
 
     # Berapa task UPLOAD yang dikerjakan salam satu schedule. rekemdasi 2
-    UPLOAD_PERSESION: int=2
+    UPLOAD_PERSESION: int=1
 
     # Nama prefix sensor aktif
     SENSOR_NAME_QUERY: str = "SKR1%"
