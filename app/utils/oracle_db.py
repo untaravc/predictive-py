@@ -78,7 +78,7 @@ def test_connection():
 		if result:
 			print(f"Database Connected successfully!")
 			if len(result) > 0:
-				print(f"Total data: {len(result)}") 
+				print(f"Total data sensors : {len(result)}") 
 		else:
 			print("No data found")
 			
