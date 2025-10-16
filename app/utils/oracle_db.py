@@ -11,29 +11,29 @@ def init_pool():
     # if _pool is None:
     #     # dsn = f"//{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"  # classic EZConnect syntax
     dsn = f"{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"
-    #     # dsn = oracledb.makedsn(settings.ORACLE_DB_HOST, settings.ORACLE_DB_PORT, service_name=settings.ORACLE_DB_SERVICE)
+        # dsn = oracledb.makedsn(settings.ORACLE_DB_HOST, settings.ORACLE_DB_PORT, service_name=settings.ORACLE_DB_SERVICE)
 
-    #     _pool = oracledb.create_pool(
-    #         user=settings.ORACLE_DB_USER,
-    #         password=settings.ORACLE_DB_PASSWORD,
-    #         dsn=dsn,
-    #         # min=1,
-    #         # max=5,
-    #         # increment=1
-    #     )
-
-    _pool = oracledb.connect(
+    _pool = oracledb.create_pool(
         user=settings.ORACLE_DB_USER,
         password=settings.ORACLE_DB_PASSWORD,
-        dsn=dsn  # contoh: "192.168.1.10:1521/ORCLPDB1"
+        dsn=dsn,
+        # min=1,
+        # max=5,
+        # increment=1
     )
+
+    # _pool = oracledb.connect(
+    #     user=settings.ORACLE_DB_USER,
+    #     password=settings.ORACLE_DB_PASSWORD,
+    #     dsn=dsn  # contoh: "192.168.1.10:1521/ORCLPDB1"
+    # )
 
     return _pool
 
 def get_connection():
     if _pool is None:
         init_pool()
-    return _pool
+    return _pool.acquire()
 
 # ---------- Generic query helpers ----------
 def fetch_all(query, params=None):
@@ -79,7 +79,7 @@ def test_connection():
 			print(f"Database Connected successfully!")
 			if len(result) > 0:
 				print(f"Total data: {len(result)}") 
-		else: 
+		else:
 			print("No data found")
 			
 	except oracledb.Error as e:

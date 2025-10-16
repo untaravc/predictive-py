@@ -16,13 +16,13 @@ async def lifespan(app: FastAPI):
     # await point_search()
     scheduler.start()
     if settings.RUN_SCHEDULER == "true":
-        if not scheduler.get_job("execute_record_api"):
-            scheduler.add_job(
-                execute_record_api,
-                CronTrigger.from_crontab("* * * * *"), # every minute
-                id="execute_record_api",
-                replace_existing=True
-            )
+        # if not scheduler.get_job("execute_record_api"):
+        #     scheduler.add_job(
+        #         execute_record_api,
+        #         CronTrigger.from_crontab("* * * * *"), # every minute
+        #         id="execute_record_api",
+        #         replace_existing=True
+        #     )
 
         if not scheduler.get_job("execute_upload"):
             scheduler.add_job(
@@ -32,21 +32,21 @@ async def lifespan(app: FastAPI):
                 replace_existing=True
             )
         
-        if not scheduler.get_job("execute_predict"):
-            scheduler.add_job(
-                execute_predict,
-                CronTrigger.from_crontab("0 * * * *"), # every hours
-                id="execute_predict",
-                replace_existing=True
-            )
+        # if not scheduler.get_job("execute_predict"):
+        #     scheduler.add_job(
+        #         execute_predict,
+        #         CronTrigger.from_crontab("0 * * * *"), # every hours
+        #         id="execute_predict",
+        #         replace_existing=True
+        #     )
 
-        if not scheduler.get_job("create_task_record"):
-            scheduler.add_job(
-                create_task_record,
-                CronTrigger.from_crontab("0 0 * * *"), # daily at 00:00
-                id="create_task_record",
-                replace_existing=True
-            )
+        # if not scheduler.get_job("create_task_record"):
+        #     scheduler.add_job(
+        #         create_task_record,
+        #         CronTrigger.from_crontab("0 0 * * *"), # daily at 00:00
+        #         id="create_task_record",
+        #         replace_existing=True
+        #     )
 
         if not scheduler.get_job("create_task_predict"):
             scheduler.add_job(
