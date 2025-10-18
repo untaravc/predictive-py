@@ -3,8 +3,7 @@ from app.archives.ip_api_service import fetch_data_with_basic_auth
 # from app.configs.ind_power_conf import DATA_SERVER_WEB_ID, URL_POINT_SEARCH, URL_STREAM_INTERPOLATED
 from app.configs.base_conf import settings
 from app.utils.oracle_db import fetch_one, execute_query, fetch_all
-from app.services.generator_service import run_generator_record, set_normal_values
-from app.services.unit3_service import run_unit3_lstm
+from app.services.generator_service import run_generator_record
 from app.archives.pi_vision_service import post_prediction_result
 from collections import defaultdict
 from app.configs.base_conf import settings
@@ -170,27 +169,6 @@ async def collect_interpolated(request: Request):
 
 async def generate_value_record():
     result = await run_generator_record(146888)
-    return {
-        "success": True,
-        "result": result
-    }
-
-async def set_normal_value():
-    result = set_normal_values()
-    return {
-        "success": True,
-        "result": result
-    }
-
-async def consume_unit3_lstm():
-
-    result = await run_unit3_lstm()
-
-    for t, time in enumerate(result['timestamps']):
-        for c, col in enumerate(result['columns']):
-            val = result['values'][t][c]
-            print(time, col, val)
-
     return {
         "success": True,
         "result": result

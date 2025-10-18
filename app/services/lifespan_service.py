@@ -11,7 +11,9 @@ load_dotenv()
 scheduler = AsyncIOScheduler()
 
 async def lifespan(app: FastAPI):
-    await point_search()
+    # await point_search()
+    # await create_task_record()
+    # await create_task_predict()
     scheduler.start()
     if settings.RUN_SCHEDULER == "true":
         if not scheduler.get_job("execute_record_api"):

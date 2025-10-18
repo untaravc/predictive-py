@@ -5,28 +5,16 @@ _pool = None  # global pool instance
 
 def init_pool():
     global _pool
-    # oracledb.defaults.thin = True
-    # oracledb.init_oracle_client()
-    # print(settings)
-    # if _pool is None:
-    #     # dsn = f"//{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"  # classic EZConnect syntax
     dsn = f"{settings.ORACLE_DB_HOST}:{settings.ORACLE_DB_PORT}/{settings.ORACLE_DB_SERVICE}"
-        # dsn = oracledb.makedsn(settings.ORACLE_DB_HOST, settings.ORACLE_DB_PORT, service_name=settings.ORACLE_DB_SERVICE)
 
     _pool = oracledb.create_pool(
         user=settings.ORACLE_DB_USER,
         password=settings.ORACLE_DB_PASSWORD,
         dsn=dsn,
-        # min=1,
-        # max=5,
-        # increment=1
+        min=1,
+        max=5,
+        increment=1
     )
-
-    # _pool = oracledb.connect(
-    #     user=settings.ORACLE_DB_USER,
-    #     password=settings.ORACLE_DB_PASSWORD,
-    #     dsn=dsn  # contoh: "192.168.1.10:1521/ORCLPDB1"
-    # )
 
     return _pool
 
@@ -63,6 +51,11 @@ def execute_query(query, params=None):
 		with get_connection() as conn:
 			with conn.cursor() as cur:
 				cur.execute(query, params or {})
+				
+				if query.strip().lower().startswith("select"):
+					result = cur.fetchall()
+					return result
+
 				conn.commit()
 				return cur.rowcount
 	except Exception as e:

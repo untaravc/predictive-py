@@ -12,7 +12,6 @@ from sklearn.metrics import (
     mean_absolute_percentage_error)
 
 from app.utils.oracle_db import execute_query, fetch_all
-# from app.configs.oracle_conf import TABLE_SENSORS, TABLE_RECORDS
 from app.services.generator_service import build_merge_query
 from app.configs.base_conf import settings
 

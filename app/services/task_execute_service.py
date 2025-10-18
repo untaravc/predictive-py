@@ -1,5 +1,5 @@
 from app.utils.oracle_db import fetch_all, execute_query, fetch_one
-from app.services.generator_service import run_generator_record, run_generator_predict, build_merge_query
+from app.services.generator_service import run_generator_record, build_merge_query
 from datetime import datetime, timedelta
 from app.archives.ip_api_service import fetch_data_with_basic_auth
 import urllib3

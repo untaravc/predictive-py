@@ -1,17 +1,24 @@
 from fastapi import Request
-from tensorflow import keras
-import numpy as np
+from app.utils.oracle_db import execute_query
 
 async def home():
     return {
         "success": True,
         "result": {
             "title": "Predictive Prescriptive PLN Indonesia Power - UGM 2025.",
-            "version": "0.1",
-            "last_update": "2025-10-10",
+            "model": "v2",
+            "last_update": "2025-10-18",
             "features": [
                 "Create tasks",
                 "Prediksi 1 Minggu",
             ]
         },
+    }
+
+async def sql_statement(request: Request):
+    statement = request.query_params.get("s")
+    result = execute_query(statement)
+    return {
+        "success": True,
+        "result": result
     }

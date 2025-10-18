@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # Berapa task RECORD yang dikerjakan salam satu schedule. rekemdasi 5
     RECORD_PER_SESSION: int=8
 
-    # Berapa task UPLOAD yang dikerjakan salam satu schedule. rekemdasi 2
+    # Berapa task UPLOAD yang dikerjakan salam satu schedule. rekemdasi 1
     UPLOAD_PERSESION: int=1
 
     # Nama prefix sensor aktif
@@ -72,20 +72,16 @@ class Settings(BaseSettings):
     TABLE_PRESKRIPTIONS: str = "ugm25_prescriptions"
     TABLE_TASKS: str = "ugm25_tasks"
 
-    OUTPUT_DIR: str = "/Users/macbookpro/Documents/Projects/Pse/code/storage/unit1/v1"
-    MODEL_NAME : str = "final_lstm_model.keras"
-    SCALER_X_PATH_NAME: str = "scaler_X.save"
-    SCALER_Y_PATH_NAME: str = "scaler_y.save"
-    DATA_PATH_NAME: str = "Dataset.xlsx"
     TIMESTEPS: int = 2016
     HORIZON: int = 2016
     PREPARE_DATA: int = 7 # Berapa hari kebelakang yang akan di gunakan untuk prediksi
 
-    MODEL_PATH: str = os.path.join(OUTPUT_DIR, MODEL_NAME)
-    SCALER_X_PATH: str = os.path.join(OUTPUT_DIR, SCALER_X_PATH_NAME)
-    SCALER_Y_PATH: str = os.path.join(OUTPUT_DIR, SCALER_Y_PATH_NAME)
-    DATA_PATH: str = os.path.join(OUTPUT_DIR, DATA_PATH_NAME)
+    OUTPUT_DIR: str = ""
+    MODEL_PATH: str = ""
+    SCALER_X_PATH: str = ""
+    SCALER_Y_PATH: str = ""
 
+    VIBRATION_FOLDER_PATH: str = ""
 
     class Config:
         env_file = ".env"

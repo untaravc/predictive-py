@@ -2,10 +2,8 @@ from datetime import datetime, timedelta
 import random
 from app.utils.oracle_db import execute_query, fetch_all, fetch_one
 from app.configs.base_conf import settings
-from app.statics.normal_value import normal_value_unit1, normal_value_unit3
 from app.utils.helper import chunk_list
 
-SENSOR_NAME_QUERY = "SKR1%"
 async def run_generator_record(sensor_id: int, date_from: str = None, date_to: str = None, period: int = None):
     now = datetime.now()
     if(date_from == None):
@@ -40,7 +38,7 @@ async def run_generator_predict(date_from: str = None, date_to: str = None, peri
         period = 60
 
     # get sensors
-    sensors = fetch_all("SELECT ID, NORMAL_VALUE FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'" + SENSOR_NAME_QUERY + "'")
+    sensors = fetch_all("SELECT ID, NORMAL_VALUE FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'" + settings.SENSOR_NAME_QUERY + "'")
 
     for sensor in sensors:
         print("Start sensor ", sensor["ID"])
@@ -100,26 +98,26 @@ def random_within_percent(value: float, percent: int = 10) -> float:
     upper = value * ((100 + percent) / 100)
     return round(random.uniform(lower, upper), 2)
 
-def set_normal_value():
-    unit_1 = normal_value_unit1()
+# def set_normal_value():
+#     unit_1 = normal_value_unit1()
 
-    for item in unit_1:
-        print("update", item["ID"], item["NORMAL_VALUE"])
-        execute_query("UPDATE "+ settings.TABLE_SENSORS +" SET NORMAL_VALUE = :value WHERE ID = :id", {"value": item["NORMAL_VALUE"], "id": item["ID"]})
+#     for item in unit_1:
+#         print("update", item["ID"], item["NORMAL_VALUE"])
+#         execute_query("UPDATE "+ settings.TABLE_SENSORS +" SET NORMAL_VALUE = :value WHERE ID = :id", {"value": item["NORMAL_VALUE"], "id": item["ID"]})
 
-    return unit_1
+#     return unit_1
 
-def set_normal_values():
-    units = normal_value_unit3()
+# def set_normal_values():
+#     units = normal_value_unit3()
 
-    sql_update = "UPDATE "+ settings.TABLE_SENSORS +" SET NORMAL_VALUE = CASE "
-    for item in units:
-        sql_update += "WHEN ID = "+ str(item["ID"]) +" THEN "+ str(item["NORMAL_VALUE"]) +" "
-    sql_update += "ELSE NORMAL_VALUE END"
+#     sql_update = "UPDATE "+ settings.TABLE_SENSORS +" SET NORMAL_VALUE = CASE "
+#     for item in units:
+#         sql_update += "WHEN ID = "+ str(item["ID"]) +" THEN "+ str(item["NORMAL_VALUE"]) +" "
+#     sql_update += "ELSE NORMAL_VALUE END"
 
-    execute_query(sql_update)
+#     execute_query(sql_update)
 
-    return units
+#     return units
 
 def build_merge_query(table_name, sensor_id, items):
     """

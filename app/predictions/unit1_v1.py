@@ -18,7 +18,6 @@ from app.configs.base_conf import settings
 async def run_unit1_lstm_final():
     version = datetime.now().strftime("%Y%m%d%H%M%S")
 # --- 1. Load Model dan Scaler ---
-    print("Loading model and scalers...")
     # Load model. `compile=False` mempercepat loading karena kita tidak akan training lagi.
     model = tf.keras.models.load_model(settings.MODEL_PATH, compile=False)
     scaler_X = joblib.load(settings.SCALER_X_PATH)
@@ -30,7 +29,6 @@ async def run_unit1_lstm_final():
     # Untuk contoh ini, kita akan menggunakan 100 baris terakhir dari data training asli
     # sebagai input untuk memprediksi 25 periode ke depan.
     # GANTI BAGIAN INI DENGAN DATA ASLI ANDA
-    # df = pd.read_excel(DATA_PATH, index_col=0, parse_dates=True)
     df = await prepare_data_input(settings.PREPARE_DATA)
     df.to_csv(os.path.join(settings.OUTPUT_DIR, "Dataset_"+ version +".csv"))
 
@@ -74,7 +72,7 @@ async def run_unit1_lstm_final():
     # Buat DataFrame untuk hasil prediksi agar mudah dibaca
     last_timestamp = last_window_df.index[-1]
     # Asumsikan frekuensi data adalah 5 menit ("5T")
-    forecast_timestamps = pd.date_range(start=last_timestamp, periods=settings.HORIZON + 1, freq="5T")[1:]
+    forecast_timestamps = pd.date_range(start=last_timestamp, periods=settings.HORIZON + 1, freq="5min")[1:]
 
     forecast_df = pd.DataFrame(prediction_original_scale, index=forecast_timestamps, columns=UNIT1_TARGET_COLS)
 
@@ -170,14 +168,13 @@ async def prepare_data_input(days: int = 7):
             pivot_df[col] = np.nan
 
     # --- 6️⃣ Fill missing data: forward-fill, then fill remaining NaN with 0 ---
-    pivot_df = pivot_df.sort_index().fillna(method="ffill").fillna(0)
+    pivot_df = pivot_df.sort_index().ffill().fillna(0)
 
     # --- 7️⃣ Reorder columns to match UNIT1_INPUT_COLS ---
     pivot_df = pivot_df[UNIT1_INPUT_COLS]
 
     pivot_df = fill_zero_with_last_valid(pivot_df).fillna(0)
 
-    # ✅ Final DataFrame same structure as pd.read_excel(DATA_PATH, index_col=0, parse_dates=True)
     df = pivot_df.copy()
 
     return df

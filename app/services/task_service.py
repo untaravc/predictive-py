@@ -46,7 +46,7 @@ async def create_task_predict():
     return "Success"
 
 async def update_vibration():
-    folder_path = "/Users/macbookpro/Documents/Projects/Pse/code/storage/vibrations/unit1"
+    folder_path = settings.VIBRATION_FOLDER_PATH
 
     for root, dirs, files in os.walk(folder_path):
         for file in files:
