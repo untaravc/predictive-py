@@ -14,7 +14,6 @@ from app.configs.base_conf import settings
 
 # --- Konfigurasi ---
 
-
 async def run_unit1_lstm_final():
     version = datetime.now().strftime("%Y%m%d%H%M%S")
 # --- 1. Load Model dan Scaler ---

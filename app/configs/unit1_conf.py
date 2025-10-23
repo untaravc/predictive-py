@@ -24,7 +24,7 @@ UNIT1_INPUT_COLS  = ["SKR1.24VDC VOLTAGE BUSBAR A",
                "SKR1.OIL TEMP. U1",
                "SKR1.REACTIVE    PWR UNIT 1",
                "SKR1.REACTIVE POWER U1",
-               #"SKR1.ROTOR CURR  UNIT 1",
+               "SKR1.ROTOR CURR  UNIT 1",
                "SKR1.ROTOR VOLT  UNIT 1",
                "SKR1.STATOR CORE TEMP1 U1",
                "SKR1.STATOR CORE TEMP2 U1",
@@ -62,8 +62,6 @@ UNIT1_INPUT_COLS  = ["SKR1.24VDC VOLTAGE BUSBAR A",
                "SKR1.Generator Turbine Guide Bearing Axial Vibration"
                ]
 
-# UNIT1_INPUT_COLS  = ["SKR1.24VDC VOLTAGE BUSBAR A",
-#                "SKR1.24VDC VOLTAGE BUSBAR B",]
 UNIT1_TARGET_COLS = ["SKR1.LO GUIDE BRGOIL TEMP U1",
                "SKR1.METAL TEMP 1 U1",
                "SKR1.OIL TEMP. U1",
