@@ -75,11 +75,41 @@ async def run_unit1_lstm_final():
 
     forecast_df = pd.DataFrame(prediction_original_scale, index=forecast_timestamps, columns=UNIT1_TARGET_COLS)
 
+    forecast_df_corrected = forecast_df 
+    try:
+        # 1. Hitung Rata-rata Nilai Input (hanya untuk kolom target)
+        # Kita ambil rata-rata dari data historis yang digunakan untuk prediksi
+        # Asumsi: TARGET_COLS adalah subset dari INPUT_COLS
+        input_means = last_window_df[UNIT1_TARGET_COLS].mean()
+        print("Rata-rata input historis (per kolom):")
+        print(input_means.head())
+
+        # 2. Hitung Rata-rata Nilai Output (prediksi mentah)
+        output_means = forecast_df.mean()
+        print("\nRata-rata output prediksi (per kolom):")
+        print(output_means.head())
+
+        # 3. Hitung Nilai Koreksi
+        # Ini akan menjadi Series (satu nilai koreksi per kolom)
+        nilai_koreksi = input_means - output_means
+        print("\nNilai koreksi (per kolom):")
+        print(nilai_koreksi.head())
+
+        # 4. Hitung Prediksi Akhir
+        # Tambahkan nilai koreksi ke setiap baris prediksi
+        # Pandas akan otomatis (broadcast) menambahkan nilai Series ke setiap baris DataFrame
+        forecast_df_corrected = forecast_df + nilai_koreksi
+
+        print("\nKoreksi berhasil diterapkan.")
+
+    except KeyError as e:
+        print(f"\n--- WARNING: Gagal menerapkan koreksi ---")
+
     print( "Shape hasil prediksi: ", forecast_df.shape)
-    forecast_df.to_csv(os.path.join(settings.OUTPUT_DIR, "results_"+ version +".csv"))
+    forecast_df_corrected.to_csv(os.path.join(settings.OUTPUT_DIR, "results_"+ version +".csv"), index=True, float_format='%.6f')
 
     # Reset index so timestamp becomes a column
-    df_reset = forecast_df.reset_index().rename(columns={"index": "Timestamp"})
+    df_reset = forecast_df_corrected.reset_index().rename(columns={"index": "Timestamp"})
 
     # Melt to long format
     long_df = df_reset.melt(

@@ -67,11 +67,11 @@ def execute_query(query, params=None):
 def test_connection():
 	print("Testing connection...")
 	try:
-		result = fetch_all("SELECT * FROM " + settings.TABLE_SENSORS)
+		result = fetch_all("SELECT * FROM " + settings.TABLE_TASKS + " WHERE is_complete = 0")
 		if result:
 			print(f"Database Connected successfully!")
 			if len(result) > 0:
-				print(f"Total data sensors : {len(result)}") 
+				print(f"Task Pending : {len(result)}") 
 		else:
 			print("No data found")
 			

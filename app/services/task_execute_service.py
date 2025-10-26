@@ -97,7 +97,6 @@ async def execute_upload():
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload' AND START_AT < SYSDATE ORDER BY START_AT FETCH FIRST " + str(settings.UPLOAD_PERSESION) + " ROWS ONLY")
 
     for task in tasks:
-        print('Tasks ', task['PARAMS'])
         sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
         startTime = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
         endTime = (task["START_AT"] + timedelta(days=settings.UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
@@ -115,16 +114,14 @@ async def execute_upload():
         
         values1 = list()
         streamValue1.web_id = point1.web_id
-        print('Web ID ',point1.web_id)
         total_data = len(predictions)
-        print("Prediction data: ", total_data)
         for i in range(total_data):
             value1 = PITimedValue()
             value1.value = predictions[i]["VALUE"]
             value1.timestamp = predictions[i]["RECORD_TIME"].strftime("%Y-%m-%dT%H:%M:%SZ")
             values1.append(value1)
 
-        print("Items ",len(values1))
+        print("Sensor Name: ", sensor['NAME'], "| Prediction data: ", total_data, "| Items ",len(values1))
         streamValue1.items = values1
 
         streamValues = list()
