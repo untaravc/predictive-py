@@ -135,11 +135,12 @@ def insert_update_db(array):
         sensor['list'] = []
 
         for arr in array:
-            if sensor["NAME"] == arr["Name"]:
-                ts = arr["Timestamp"]
-                # Ensure timezone-aware and format to ISO 8601 with 'Z'
-                arr["Timestamp"] = ts.tz_localize(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
-                sensor['list'].append(arr)
+            if sensor["NAME"] in UNIT1_TARGET_COLS:
+                if sensor["NAME"] == arr["Name"]:
+                    ts = arr["Timestamp"]
+                    # Ensure timezone-aware and format to ISO 8601 with 'Z'
+                    arr["Timestamp"] = ts.tz_localize(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+                    sensor['list'].append(arr)
 
     for sensor in sensors:
         if len(sensor['list']) > 0:

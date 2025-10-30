@@ -8,6 +8,7 @@ from osisoft.pidevclub.piwebapi.models import PIAnalysis, PIItemsStreamValues, P
 from app.configs.base_conf import settings
 from app.utils.helper import chunk_list
 from app.predictions.unit1_v1 import run_unit1_lstm_final
+from app.predictions.unit1_lgbm import run_unit1_lgbm
 
 async def execute_record_sample():
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
@@ -87,6 +88,7 @@ async def execute_predict():
     for task in tasks:
         print("Generating predict for sensor ", task["PARAMS"])
         await run_unit1_lstm_final()
+        run_unit1_lgbm()
         execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
