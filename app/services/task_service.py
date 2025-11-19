@@ -1,7 +1,7 @@
 from app.utils.oracle_db import fetch_all, execute_query, fetch_one
 from app.services.generator_service import generate_timestamps
 from datetime import datetime, timedelta
-from app.configs.unit1_conf import UNIT1_TARGET_COLS
+from app.configs.lstm_conf import lstm_config
 from app.configs.base_conf import settings
 from app.services.vibration_proccess_service import process_excel
 import os
@@ -11,7 +11,7 @@ import re
 # Membuat task untuk pemanggilan API Record tiap sensor
 # Membuat task untuk menjalankan model predict
 async def create_task_record():
-    print("Service: create_task_record", settings.TABLE_SENSORS)
+    print("Service: create_task_record", settings.TABLE_SENSORS, settings.SENSOR_NAME_QUERY)
     sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'" + settings.SENSOR_NAME_QUERY + "' AND WEB_ID IS NOT NULL AND IS_ACTIVE = 1")
     now = datetime.now()
 
@@ -40,8 +40,10 @@ async def create_task_predict():
     end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
     print("Start predict ", start, end, settings.PREDICT_TIME_PERIOD)
     predict_timestamps = generate_timestamps(start, end, settings.PREDICT_TIME_PERIOD, 0)
-    predict_query, predict_params = build_insert_many(predict_timestamps, settings.PREDICT_UNIT, "predict")
-    execute_query(predict_query, predict_params)
+
+    for i in range(1, 5):
+        predict_query, predict_params = build_insert_many(predict_timestamps, i, "predict")
+        execute_query(predict_query, predict_params)
 
     return "Success"
 

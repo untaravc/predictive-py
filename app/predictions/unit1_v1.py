@@ -7,7 +7,7 @@ import os
 # from app.configs.oracle_conf import TABLE_SENSORS, TABLE_PREDICTIONS, TABLE_RECORDS
 from app.utils.oracle_db import fetch_all, execute_query
 from app.services.generator_service import build_merge_query
-from app.configs.unit1_conf import UNIT1_INPUT_COLS, UNIT1_TARGET_COLS
+from app.configs.lstm_conf import lstm_config
 from datetime import datetime, timedelta, timezone
 from app.utils.helper import chunk_list
 from app.configs.base_conf import settings
@@ -30,6 +30,8 @@ async def run_unit1_lstm_final():
     # GANTI BAGIAN INI DENGAN DATA ASLI ANDA
     df = await prepare_data_input(settings.PREPARE_DATA)
     df.to_csv(os.path.join(settings.OUTPUT_DIR, "Dataset_"+ version +".csv"))
+
+    return 'ok'
 
     # df = df.sort_index()
     # df.replace('I/O Timeout', np.nan, inplace=True)
@@ -135,7 +137,7 @@ def insert_update_db(array):
         sensor['list'] = []
 
         for arr in array:
-            if sensor["NAME"] in UNIT1_TARGET_COLS:
+            if sensor["NAME"] in UNIT2_INPUT_COLS:
                 if sensor["NAME"] == arr["Name"]:
                     ts = arr["Timestamp"]
                     # Ensure timezone-aware and format to ISO 8601 with 'Z'
@@ -150,6 +152,7 @@ def insert_update_db(array):
                 execute_query(query, params)
 
 async def prepare_data_input(days: int = 7):
+    print(days)
     now = datetime.now()
 
     if settings.TIME_PRETEND != "":
@@ -160,10 +163,11 @@ async def prepare_data_input(days: int = 7):
     print('date from ', date_from, ' date to ', date_to)
     sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like '"+settings.SENSOR_NAME_QUERY+"'")
     input_sensors_ids = []
+    print('sensors count: ', len(sensors))
 
     # compare with UNIT1_INPUT_COLS
     for sensor in sensors:
-        if sensor["NAME"] in UNIT1_INPUT_COLS:
+        if sensor["NAME"] in UNIT2_INPUT_COLS:
             input_sensors_ids.append(sensor["ID"])
     
     query_select = "SELECT " + settings.TABLE_RECORDS +".*, "+ settings.TABLE_SENSORS +".NAME FROM "+ settings.TABLE_RECORDS 
@@ -172,9 +176,7 @@ async def prepare_data_input(days: int = 7):
     query_select = query_select +" AND RECORD_TIME < TO_DATE(:date_to, 'YYYY-MM-DD') + INTERVAL '1' DAY"
     params = {"date_from": date_from, "date_to": date_to}
 
-    print('query records')
     data_records = fetch_all(query_select, params)
-
     print('data_records count: ', len(data_records))
 
    # --- 1️⃣ Convert to DataFrame ---
@@ -184,7 +186,7 @@ async def prepare_data_input(days: int = 7):
 
     # --- 2️⃣ Build time index for one week with 5-minute intervals ---
     start_time = pd.Timestamp(date_from)
-    time_index = pd.date_range(start=start_time, periods=2016, freq="5min")
+    time_index = pd.date_range(start=start_time, periods=(2016 * 10), freq="5min")
 
     # --- 3️⃣ Pivot data into time × sensor ---
     pivot_df = df_raw.pivot_table(index="RECORD_TIME", columns="NAME", values="VALUE")
@@ -193,7 +195,7 @@ async def prepare_data_input(days: int = 7):
     pivot_df = pivot_df.reindex(time_index)
 
     # --- 5️⃣ Ensure all sensors exist ---
-    for col in UNIT1_INPUT_COLS:
+    for col in UNIT2_INPUT_COLS:
         if col not in pivot_df.columns:
             pivot_df[col] = np.nan
 
@@ -201,7 +203,7 @@ async def prepare_data_input(days: int = 7):
     pivot_df = pivot_df.sort_index().ffill().fillna(0)
 
     # --- 7️⃣ Reorder columns to match UNIT1_INPUT_COLS ---
-    pivot_df = pivot_df[UNIT1_INPUT_COLS]
+    pivot_df = pivot_df[UNIT2_INPUT_COLS]
 
     pivot_df = fill_zero_with_last_valid(pivot_df).fillna(0)
 

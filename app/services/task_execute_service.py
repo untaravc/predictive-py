@@ -8,7 +8,7 @@ from osisoft.pidevclub.piwebapi.models import PIAnalysis, PIItemsStreamValues, P
 from app.configs.base_conf import settings
 from app.utils.helper import chunk_list
 from app.predictions.unit1_v1 import run_unit1_lstm_final
-from app.predictions.unit1_lgbm import run_unit1_lgbm
+from app.predictions.lgbm import run_lgbm
 
 async def execute_record_sample():
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
@@ -37,7 +37,8 @@ async def execute_record_api():
             interval = '5m'
 
             if settings.TIME_PRETEND != "":
-                target = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
+                # target = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
+                target = datetime.strptime(task["START_AT"].strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
                 now = datetime.now()
                 selisih = now - target
                 hari = selisih.days
@@ -47,11 +48,12 @@ async def execute_record_api():
                 interval = '5m'
 
             print('Start time ' + startTime + ' end time ' + endTime + ' interval ' + interval)
+            print('Result api ' + sensor["WEB_ID"] + " " + sensor["NAME"] + ' ' + str(sensor['ID']))
 
             url = settings.INTERPOLATED_URL + sensor["WEB_ID"] + "/interpolated?startTime=" + startTime + "&endTime=" + endTime + "&interval=" + interval
             result = await fetch_data_with_basic_auth(url)
             items = result['result']['Items']
-            print('Result api ' + sensor["NAME"] + ' ' + str(sensor['ID']) + ': '  + str(len(items)) + ' items')
+            print('Result api ' + str(len(items)) + ' items')
 
             insert_data = []
             for item in items:
@@ -69,10 +71,11 @@ async def execute_record_api():
 
             for i, chunk in enumerate(chunk_list(insert_data, 500), start=1):
                 print(f"Processing batch {i} ({len(chunk)} records)")
-                query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk)
-
+                query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk[:-1])
                 execute_query(query, params)
-            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+                
+            if len(insert_data) > 0:
+                execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
         except:
             continue
 
@@ -87,9 +90,9 @@ async def execute_predict():
 
     for task in tasks:
         print("Generating predict for sensor ", task["PARAMS"])
-        await run_unit1_lstm_final()
-        run_unit1_lgbm()
-        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        # await run_unit1_lstm_final()
+        run_lgbm(task)
+        # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
 

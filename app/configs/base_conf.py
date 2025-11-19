@@ -2,26 +2,20 @@ from pydantic_settings import BaseSettings
 import os
 class Settings(BaseSettings):
     # Memisalkan saat ini adalah "2025-09-01 00:00:00". Fungsi akan mengambil record berdasarkan nilai ini kebelakang.
-    # Kosongkan bila akan menggunakan waktu sekarang
+    # Isi "" bila akan menggunakan waktu sekarang
     TIME_PRETEND: str = ""
 
     # berapa hari kebelakang dalam pengambilan data record, sesuaikan dengan model input.
-    RECORD_BACK_DATE: int=7 
+    RECORD_BACK_DATE: int=50
 
     # Berapa hari kebelakang yang akan diupload ke PI Vision
     UPLOAD_PREDICT_DAYS: int=7
 
     # Berapa task RECORD yang dikerjakan salam satu schedule. rekemdasi 5
-    RECORD_PER_SESSION: int=8
+    RECORD_PER_SESSION: int=2
 
     # Berapa task UPLOAD yang dikerjakan salam satu schedule. rekemdasi 1
     UPLOAD_PERSESION: int=1
-
-    # Nama prefix sensor aktif
-    SENSOR_NAME_QUERY: str = "SKR1%"
-    SENSOR_NAME_QUERY_STAR: str = "SKR1*"
-    PREDICT_UNIT: int = 1
-    SENSOR_NAME_QUERY_VIBRATION: str = "SKR1.Generator%"
 
     # Flow
     # 1. Create Task
@@ -58,7 +52,8 @@ class Settings(BaseSettings):
     SAMPLE_WEB_ID: str =""
     URL_POINT_SEARCH: str =""
     URL_STREAM_INTERPOLATED : str =""
-    INTERPOLATED_URL: str="https://pivision.plnindonesiapower.co.id/piwebapi/streams/"
+    # INTERPOLATED_URL: str="https://pivision.plnindonesiapower.co.id/piwebapi/streams/"
+    INTERPOLATED_URL: str="https://piwebapi-pool.plnindonesiapower.co.id/piwebapi/streams/"
 
     # Pengaturan OSISOF
     OSISOF_USER: str =""
@@ -74,7 +69,7 @@ class Settings(BaseSettings):
 
     TIMESTEPS: int = 2016
     HORIZON: int = 2016
-    PREPARE_DATA: int = 7 # Berapa hari kebelakang yang akan di gunakan untuk prediksi
+    PREPARE_DATA: int = 63 # Berapa hari kebelakang yang akan di gunakan untuk prediksi
 
     OUTPUT_DIR: str = ""
     MODEL_PATH: str = ""
