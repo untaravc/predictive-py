@@ -9,7 +9,7 @@ def lgbm_config(unit: str):
                 "MODEL_FILE": "/Users/macbookpro/Documents/Projects/Pse/code/storage/lgbm/unit1/lgbm.pkl",
                 "OUTPUT_DIR": "/Users/macbookpro/Documents/Projects/Pse/code/storage/lgbm/unit1/",
                 "FREQ": '5T',
-                "INPUT_WINDOW":6048,
+                "INPUT_WINDOW": 6048,
                 "HORIZON": 2016,
                 "PLOT_HISTORY": 2016,
                 "INPUT_COLS": [

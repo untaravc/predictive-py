@@ -1,7 +1,7 @@
 from app.utils.oracle_db import fetch_all, execute_query, fetch_one
 from app.services.generator_service import generate_timestamps
 from datetime import datetime, timedelta
-from app.configs.lstm_conf import lstm_config
+from app.configs.lgbm_conf import lgbm_config
 from app.configs.base_conf import settings
 from app.services.vibration_proccess_service import process_excel
 import os
@@ -81,17 +81,39 @@ async def create_task_upload():
     if settings.TIME_PRETEND != "":
         now = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
 
-    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'" + settings.SENSOR_NAME_QUERY + "'")
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'SKR%'")
     start = now.strftime("%Y-%m-%d 00:00:00")
     end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
-    for sensor in sensors:
-        if sensor['NAME'] in UNIT1_TARGET_COLS:
-            print(sensor['NAME'])
-            timestamps = generate_timestamps(start, end, settings.UPLOAD_TIME_PERIOD, 0)
-            query, params = build_insert_many(timestamps, sensor["ID"], "upload")
 
-            execute_query(query, params)
-            print("Upload task ", sensor["ID"])
+    units = ["1", "2", "3", "4"]
+
+    for unit in units:
+        config = lgbm_config(unit)
+        for sensor in sensors:
+            if sensor['NAME'] in config['TARGET_COLS']:
+                timestamps = generate_timestamps(start, end, settings.UPLOAD_TIME_PERIOD, 0)
+                query, params = build_insert_many(timestamps, sensor["ID"], "upload")
+
+                execute_query(query, params)
+                print("Upload task ", sensor["ID"]) 
+
+    return "Success"
+
+async def create_task_prescriptive():
+    print("Service: create_task_prescriptive")
+    now = datetime.now()
+
+    if settings.TIME_PRETEND != "":
+        now = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
+
+    start = now.strftime("%Y-%m-%d 00:00:00")
+    end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+    print("Start prescriptive ", start, end, settings.PREDICT_TIME_PERIOD)
+    predict_timestamps = generate_timestamps(start, end, settings.PREDICT_TIME_PERIOD, 0)
+
+    for i in range(1, 5):
+        predict_query, predict_params = build_insert_many(predict_timestamps, i, "prescriptive")
+        execute_query(predict_query, predict_params)
 
     return "Success"
 

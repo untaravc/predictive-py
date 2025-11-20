@@ -6,6 +6,7 @@ import urllib3
 from osisoft.pidevclub.piwebapi.pi_web_api_client import PIWebApiClient
 from osisoft.pidevclub.piwebapi.models import PIAnalysis, PIItemsStreamValues, PIStreamValues, PITimedValue, PIRequest
 from app.configs.base_conf import settings
+from app.predictions.prescriptive import run_prescriptive
 from app.utils.helper import chunk_list
 from app.predictions.unit1_v1 import run_unit1_lstm_final
 from app.predictions.lgbm import run_lgbm
@@ -27,7 +28,7 @@ async def execute_record_sample():
 async def execute_record_api():
     print('Start execute_record_api')
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete != 1 AND category = 'record' AND PARAMS > 1000 AND START_AT < SYSDATE FETCH FIRST " + str(settings.RECORD_PER_SESSION) + " ROWS ONLY")
-    print("Task found ", str(len(tasks)))
+    print("Record api found ", str(len(tasks)))
 
     for task in tasks:
         try:
@@ -73,7 +74,7 @@ async def execute_record_api():
                 print(f"Processing batch {i} ({len(chunk)} records)")
                 query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk[:-1])
                 execute_query(query, params)
-                
+
             if len(insert_data) > 0:
                 execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
         except:
@@ -96,6 +97,18 @@ async def execute_predict():
 
     return 'Predict completed'
 
+async def execute_prescriptive():
+    print('Start execute_predict')
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'prescriptive' AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
+    print('Tasks', len(tasks))
+
+    for task in tasks:
+        print("Generating predict for sensor ", task["PARAMS"])
+        run_prescriptive(task)
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+
+    return 'Predict completed'
+
 async def execute_upload():
     print('Start execute_upload')
     # Run Over TASK
@@ -113,7 +126,6 @@ async def execute_upload():
 
         path = f"\\\\PI1\{sensor['NAME']}.prediksi"
         point1 = client.point.get_by_path(path, None)
-        # point1 = client.point.get_by_path("\\\\PI1\SKR1.PRED.tes.prediksi", None)
 
         streamValue1 = PIStreamValues()
         

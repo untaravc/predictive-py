@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     TIME_PRETEND: str = ""
 
     # berapa hari kebelakang dalam pengambilan data record, sesuaikan dengan model input.
-    RECORD_BACK_DATE: int=50
+    RECORD_BACK_DATE: int=21
 
     # Berapa hari kebelakang yang akan diupload ke PI Vision
     UPLOAD_PREDICT_DAYS: int=7

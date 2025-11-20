@@ -10,9 +10,7 @@ from app.configs.base_conf import settings
 from app.statics.unit1_io import unit1_in
 
 async def point_search(query: str = None):
-    print("Point search...", settings.SENSOR_NAME_QUERY_STAR)
-    if query == None:
-        query = settings.SENSOR_NAME_QUERY_STAR
+    print("Point search...", query)
 
     base_url = settings.URL_POINT_SEARCH
     url = base_url +"?dataserverwebid="+settings.DATA_SERVER_WEB_ID+"&query=" + query
