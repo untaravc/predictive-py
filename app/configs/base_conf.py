@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     RECORD_BACK_DATE: int=21
 
     # Berapa hari kebelakang yang akan diupload ke PI Vision
-    UPLOAD_PREDICT_DAYS: int=7
+    UPLOAD_PREDICT_DAYS: int=1
 
     # Berapa task RECORD yang dikerjakan salam satu schedule. rekemdasi 5
     RECORD_PER_SESSION: int=2
@@ -69,7 +69,7 @@ class Settings(BaseSettings):
 
     TIMESTEPS: int = 2016
     HORIZON: int = 2016
-    PREPARE_DATA: int = 63 # Berapa hari kebelakang yang akan di gunakan untuk prediksi
+    PREPARE_DATA: int = 21 # Berapa hari kebelakang yang akan di gunakan untuk prediksi
 
     OUTPUT_DIR: str = ""
     MODEL_PATH: str = ""

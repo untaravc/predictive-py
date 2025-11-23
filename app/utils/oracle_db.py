@@ -46,7 +46,7 @@ def fetch_one(query, params=None):
             return dict(zip(columns, row))
 
 def execute_query(query, params=None):
-	
+	print(query, params)
 	try:
 		with get_connection() as conn:
 			with conn.cursor() as cur:
@@ -59,7 +59,7 @@ def execute_query(query, params=None):
 				conn.commit()
 				return cur.rowcount
 	except Exception as e:
-		print("❌ Error executing query")
+		print("❌ Error executing querys")
 		print(e)
 		raise
 

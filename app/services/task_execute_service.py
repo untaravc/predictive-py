@@ -124,8 +124,15 @@ async def execute_upload():
         client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-        path = f"\\\\PI1\{sensor['NAME']}.prediksi"
-        point1 = client.point.get_by_path(path, None)
+        try:
+            path = f"\\\\PI1\{sensor['NAME']}.prediksi"
+            point1 = client.point.get_by_path(path, None)
+        except:
+            print("Point not found")
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+            continue
+
+        print("Web ID Found:",point1.web_id)
 
         streamValue1 = PIStreamValues()
         
@@ -144,13 +151,158 @@ async def execute_upload():
         streamValues = list()
         streamValues.append(streamValue1)
 
-        response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
-        print(response)
-        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
-
-# Functions ==========
+        try:
+            response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
+            print(response)
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        except:
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
 def getPIWebApiClient(webapi_url, usernme, psswrd):
     client = PIWebApiClient(webapi_url, False, 
                             username=usernme, password=psswrd, verifySsl=False)
     return client 
+
+async def execute_upload_prescriptive():
+    print('Start execute_upload')
+    # Run Over TASK
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload' AND START_AT < SYSDATE ORDER BY START_AT FETCH FIRST " + str(settings.UPLOAD_PERSESION) + " ROWS ONLY")
+
+    for task in tasks:
+        sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
+        startTime = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
+        endTime = (task["START_AT"] + timedelta(days=settings.UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+        print("Start time ", startTime, " end time ", endTime)
+        predictions = fetch_all("SELECT * FROM "+ settings.TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS') AND RECORD_TIME <= TO_DATE('" + endTime + "', 'YYYY-MM-DD HH24:MI:SS')")
+        
+        client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        try:
+            path = f"\\\\PI1\{sensor['NAME']}"
+            print(path)
+            point1 = client.point.get_by_path(path, None)
+        except:
+            print("Point not found")
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+            continue
+
+        print("Web ID Found:",point1.web_id)
+
+        streamValue1 = PIStreamValues()
+        
+        total_data = 10
+        now = datetime.now()
+        start_time = now.replace(minute=0, second=0, microsecond=0)
+
+        timestamp = start_time  # variabel waktu iterasi
+
+        values1 = list()
+        streamValue1.web_id = point1.web_id
+
+        for i in range(total_data):
+            timestamp = start_time + timedelta(minutes=360 * i)
+
+            value1 = PITimedValue()
+            value1.value = preskriptif_sample(task["PARAMS"])
+            value1.timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            values1.append(value1)
+            print("value1", value1.value)
+
+        print("Sensor Name: ", sensor['NAME'], "| Prediction data: ", total_data, "| Items ",len(values1))
+        streamValue1.items = values1
+
+        streamValues = list()
+        streamValues.append(streamValue1)
+
+        # try:
+        print("Start sending...")
+        response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
+        print(response)
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        # except:
+            # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+
+def preskriptif_sample(id):
+    print("ID:", id)
+    if id == "214867":
+        return 3
+    if id == "214868":
+        print(5)
+        return 4
+    if id == "214869":
+        # return 3
+        return "HIGH PRESSURE LUBRICATING OIL, TURBINE INLET VALVE, HIGH PRESSURE LUBRICATING OIL"
+    if id == "214870":
+        # return 4
+        return "MAT-Wear, MECH-Sticking, EXT-Blockage/plugged"
+    if id == "214871":
+        # return 5
+        return "Restore oil quality/flow, replace worn elements, check filters. Clean, lubricate, protect from debris. Clean/replace filters/strainers, flush lines, set DP alarms."
+    
+def execute_upload_max():
+    print('Start execute_upload_max')
+    # Run Over TASK
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload_max' AND START_AT < SYSDATE ORDER BY START_AT FETCH FIRST " + str(settings.UPLOAD_PERSESION) + " ROWS ONLY")
+
+    for task in tasks:
+        sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
+        startTime = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
+        endTime = (task["START_AT"] + timedelta(days=settings.UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+        print("Start time ", startTime, " end time ", endTime)
+        query = (
+            "SELECT MAX(VALUE) AS max_value FROM " + settings.TABLE_PREDICTIONS +
+            " WHERE SENSOR_ID = " + str(sensor["ID"]) +
+            " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS')" +
+            " AND RECORD_TIME <= TO_DATE('" + endTime + "', 'YYYY-MM-DD HH24:MI:SS')"
+        )
+
+        max_value = fetch_all(query)
+
+        print(max_value[0])
+        print("URL", settings.OSISOF_URL)
+        client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        path = f"\\\\PI1\{sensor['NAME']}.prediksi.max"
+        try:
+            point1 = client.point.get_by_path(path, None)
+        except:
+            print("Point not found: ", path)
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+            continue
+
+        print("Web ID Found:",point1.web_id)
+
+        streamValue1 = PIStreamValues()
+        
+        total_data = 4
+        now = datetime.now()
+        start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+        timestamp = start_time  # variabel waktu iterasi
+
+        values1 = list()
+        streamValue1.web_id = point1.web_id
+
+        for i in range(total_data):
+            timestamp = start_time + timedelta(minutes=360 * i)
+
+            value1 = PITimedValue()
+            value1.value = max_value[0]["MAX_VALUE"]
+            value1.timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            values1.append(value1)
+
+        print("Sensor Name: ", sensor['NAME'], "| Prediction data: ", total_data, "| Items ",len(values1))
+        streamValue1.items = values1
+
+        streamValues = list()
+        streamValues.append(streamValue1)
+
+        # try:
+        print("Start sending...")
+        response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
+        print(response)
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
