@@ -11,7 +11,7 @@ import re
 
 # Membuat task untuk pemanggilan API Record tiap sensor
 # Membuat task untuk menjalankan model predict
-def create_task_record():
+async def create_task_record():
     units = ["1", "2", "3", "4"]
 
     for unit in units:
@@ -37,7 +37,7 @@ def create_task_record():
 
     return "Success"
 
-def create_task_predict():
+async def create_task_predict():
     print("Service: create_task_predict")
     now = datetime.now()
 

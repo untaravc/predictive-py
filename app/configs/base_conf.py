@@ -9,10 +9,10 @@ class Settings(BaseSettings):
     RECORD_BACK_DATE: int=21
 
     # Berapa hari kebelakang yang akan diupload ke PI Vision
-    UPLOAD_PREDICT_DAYS: int=1
+    UPLOAD_PREDICT_DAYS: int=7
 
     # Berapa task RECORD yang dikerjakan salam satu schedule. rekemdasi 5
-    RECORD_PER_SESSION: int=2
+    RECORD_PER_SESSION: int=4
 
     # Berapa task UPLOAD yang dikerjakan salam satu schedule. rekemdasi 1
     UPLOAD_PERSESION: int=1
@@ -59,9 +59,10 @@ class Settings(BaseSettings):
     # Pengaturan OSISOF
     OSISOF_USER: str =""
     OSISOF_PASSWORD: str =""
+    OSISOF_URL: str ="https://piwebapi.plnindonesiapower.co.id/piwebapi"
+    # OSISOF_URL: str ="https://piwebapi2.plnindonesiapower.co.id/piwebapi"
+    # OSISOF_URL: str ="https://piwebapi-pool.plnindonesiapower.co.id/piwebapi/"
     # OSISOF_URL: str ="https://pivision.plnindonesiapower.co.id/piwebapi/"
-    # OSISOF_URL: str ="https://piwebapi2.plnindonesiapower.co.id/piwebapi/"
-    OSISOF_URL: str ="https://piwebapi-pool.plnindonesiapower.co.id/piwebapi/"
 
     # Pengaturan Table
     TABLE_SENSORS: str = "ugm25_sensors"

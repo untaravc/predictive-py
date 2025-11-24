@@ -137,7 +137,7 @@ def insert_update_db(array):
         sensor['list'] = []
 
         for arr in array:
-            if sensor["NAME"] in UNIT2_INPUT_COLS:
+            # if sensor["NAME"] in UNIT2_INPUT_COLS:
                 if sensor["NAME"] == arr["Name"]:
                     ts = arr["Timestamp"]
                     # Ensure timezone-aware and format to ISO 8601 with 'Z'
@@ -167,7 +167,7 @@ async def prepare_data_input(days: int = 7):
 
     # compare with UNIT1_INPUT_COLS
     for sensor in sensors:
-        if sensor["NAME"] in UNIT2_INPUT_COLS:
+        # if sensor["NAME"] in UNIT2_INPUT_COLS:
             input_sensors_ids.append(sensor["ID"])
     
     query_select = "SELECT " + settings.TABLE_RECORDS +".*, "+ settings.TABLE_SENSORS +".NAME FROM "+ settings.TABLE_RECORDS 
@@ -195,15 +195,15 @@ async def prepare_data_input(days: int = 7):
     pivot_df = pivot_df.reindex(time_index)
 
     # --- 5️⃣ Ensure all sensors exist ---
-    for col in UNIT2_INPUT_COLS:
-        if col not in pivot_df.columns:
-            pivot_df[col] = np.nan
+    # for col in UNIT2_INPUT_COLS:
+    # if col not in pivot_df.columns:
+    #     pivot_df[col] = np.nan
 
     # --- 6️⃣ Fill missing data: forward-fill, then fill remaining NaN with 0 ---
     pivot_df = pivot_df.sort_index().ffill().fillna(0)
 
     # --- 7️⃣ Reorder columns to match UNIT1_INPUT_COLS ---
-    pivot_df = pivot_df[UNIT2_INPUT_COLS]
+    # pivot_df = pivot_df[UNIT2_INPUT_COLS]
 
     pivot_df = fill_zero_with_last_valid(pivot_df).fillna(0)
 

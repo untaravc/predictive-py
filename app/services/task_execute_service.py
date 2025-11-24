@@ -54,11 +54,10 @@ async def execute_record_api():
         print('Start time ' + startTime + ' end time ' + endTime + ' interval ' + interval)
 
         url = settings.INTERPOLATED_URL + sensor["WEB_ID"] + "/interpolated?startTime=" + startTime + "&endTime=" + endTime + "&interval=" + interval
-        print('Url ' + url)
         result = await fetch_data_with_basic_auth(url)
         
         if result['success'] == False:
-            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
             continue
 
         items = result['result']['Items']
@@ -99,7 +98,7 @@ async def execute_predict():
         print("Generating predict for sensor ", task["PARAMS"])
         # await run_unit1_lstm_final()
         run_lgbm(task)
-        # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
 
@@ -150,6 +149,7 @@ async def execute_upload():
             value1.value = predictions[i]["VALUE"]
             value1.timestamp = predictions[i]["RECORD_TIME"].strftime("%Y-%m-%dT%H:%M:%SZ")
             values1.append(value1)
+            print("Value: ", value1.value, " Timestamp: ", value1.timestamp)
 
         print("Sensor Name: ", sensor['NAME'], "| Prediction data: ", total_data, "| Items ",len(values1))
         streamValue1.items = values1
@@ -267,9 +267,10 @@ def execute_upload_max():
         max_value = fetch_all(query)
 
         if max_value[0]["MAX_VALUE"] == None:
-            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
-            print("No max value")
-            continue
+            # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+            # print("No max value")
+            # continue
+            max_value[0]["MAX_VALUE"] = 10
 
         print("URL", settings.OSISOF_URL)
         client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
