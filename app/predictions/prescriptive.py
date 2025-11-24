@@ -8,84 +8,37 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils.dataframe import dataframe_to_rows
 import warnings
 from app.utils.oracle_db import execute_query
+from app.configs.prescriptive_conf import prescriptive_config
+from app.utils.oracle_db import fetch_all
+from app.configs.base_conf import settings
+from datetime import datetime, timedelta
 warnings.filterwarnings('ignore')
 
 def run_prescriptive(task):
-    excel_path = "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/FMEA.xlsx"
-    threshold_file = "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/THRESHOLD.xlsx"
-    output_dir = "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/"
+    config = prescriptive_config(task['PARAMS'])
+    return execute_prescriptive(config, task)
 
-    execute_prescriptive(excel_path, threshold_file, output_dir)
-
-def execute_prescriptive(excel_path, threshold_file, output_dir):
-    """
-    Initialize Crisp Monitoring System
-    
-    Parameters:
-    -----------
-    excel_path : str
-        Path to FMEA Excel file
-    threshold_file : str
-        Path to threshold Excel file
-    output_dir : str
-        Path untuk menyimpan output Excel (opsional)
-    """
+def execute_prescriptive(config, task):
     # output_dir = Path(output_dir) if output_dir else Path.cwd()
     # output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Dictionary untuk menyimpan variabel dan parameternya
+
     components = {}
     
-    variable_list = [
-        "SKR1.LO GUIDE BRGOIL TEMP U1",
-        "SKR1.METAL TEMP 1 U1",
-        "SKR1.OIL TEMP. U1",
-        "SKR1.UP GD&TH BRGOIL TEMP U1",
-        "SKR1.THRUST BRG METAL 1 U1",
-        "SKR1.THRUST BRG METAL 2 U1",
-        "SKR1.THRUST BRG METAL 3 U1",
-        "SKR1.STATOR CORE TEMP1 U1",
-        "SKR1.STATOR CORE TEMP2 U1",
-        "SKR1.STATOR WIND TEMP1 U1",
-        "SKR1.STATOR WIND TEMP2 U1",
-        "SKR1.STATOR WIND TEMP3 U1",
-        "SKR1.STATOR WIND TEMP4 U1",
-        "SKR1.STATOR WIND TEMP5 U1",
-        "SKR1.STATOR WIND TEMP6 U1",
-        "SKR1.UPPER VIBRASI HORIZONTAL",
-        "SKR1.UPPER VIBRASI VERTIKAL",
-        "SKR1.UPPER VIBRASI AXIAL",
-        "SKR1.LOWER VIBRASI HORIZONTAL",
-        "SKR1.LOWER VIBRASI VERTIKAL",
-        "SKR1.LOWER VIBRASI AXIAL",
-        "SKR1.TURBIN VIBRASI HORIZONTAL",
-        "SKR1.TURBIN VIBRASI VERTIKAL",
-        "SKR1.TURBIN VIBRASI AXIAL"
-    ]
-    
     # Load threshold and FMEA data
-    load_threshold_data(threshold_file, components, variable_list)
-    df_fmea = load_excel_data(excel_path)
-
+    load_threshold_data(config["THRESHOLD_PATH"], components, config["VARIABLE_LIST"])
+    df_fmea = load_excel_data(config["FMEA_PATH"])
     print("Data loaded and processed successfully.")
 
-    dummy_input = {
-        "SKR1.LO GUIDE BRGOIL TEMP U1": [45.2, 50.1, 48.3, 52.0],
-        "SKR1.METAL TEMP 1 U1": [60.5, 62.3, 58.9, 61.2],
-        "SKR1.OIL TEMP. U1": [70.0, 75.5, 72.3, 78.2],
-        "SKR1.UP GD&TH BRGOIL TEMP U1": [55.0, 57.2, 54.8, 56.5],
-        "SKR1.THRUST BRG METAL 1 U1": [68.5, 70.2, 69.8, 71.5],
-        "SKR1.THRUST BRG METAL 2 U1": [65.2, 67.8, 66.5, 68.9],
-        "SKR1.UPPER VIBRASI HORIZONTAL": [40.5, 42.3, 41.8, 43.2],
-        "SKR1.UPPER VIBRASI VERTIKAL": [38.9, 40.1, 39.5, 41.0],
-        "SKR1.LOWER VIBRASI HORIZONTAL": [85.0, 87.2, 86.5, 88.3],
-    }
+    items = prepare_data(config, task)
+    input = {item["NAME"]: [item["MAX_VALUE"]] for item in items}
     
-    result = process_input(dummy_input, components,df_fmea)
+    result = process_input(input, components, df_fmea)
 
     print("Prediction completed successfully.")
-    save_to_excel(result, output_dir)
+    save_to_excel(result, config["OUTPUT_DIR"])
     print("Result saved to Excel successfully.")
+
+    return input
     
 def load_threshold_data(threshold_file, components, variable_list):
     """Load dan proses data threshold dari file Excel"""
@@ -420,8 +373,12 @@ def save_to_excel(result, output_dir, filename=None):
             
             # ===== SHEET 2: TRIGGERED FMEA =====
             df_triggered = result["triggered_fmea"]
+
+                # Add header formatting
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            header_font = Font(color="FFFFFF", bold=True)
             if not df_triggered.empty:
-                save_to_prescriptions(df_triggered)
+                # save_to_prescriptions(df_triggered)
                 df_triggered.to_excel(writer, sheet_name="Triggered FMEA", index=False)
                 
                 # Format sheet Triggered FMEA
@@ -432,10 +389,6 @@ def save_to_excel(result, output_dir, filename=None):
                 # Set column widths untuk semua kolom
                 for col_idx, col_name in enumerate(df_triggered.columns, 1):
                     ws_fmea.column_dimensions[chr(64 + col_idx)].width = 20
-                
-                # Add header formatting
-                header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-                header_font = Font(color="FFFFFF", bold=True)
                 
                 for cell in ws_fmea[1]:
                     cell.fill = header_fill
@@ -491,7 +444,6 @@ def save_to_excel(result, output_dir, filename=None):
 def save_to_prescriptions(df):
     records = df.to_dict(orient="records")
     version = datetime.now().strftime("%Y%m%d%H%M")
-    version = "202511191313"
 
     for record in records:
         sql = """
@@ -554,3 +506,25 @@ def save_to_prescriptions(df):
         }
 
         execute_query(sql, insert)
+
+# SELECT
+#     sensor_id,
+#     MAX(your_value_column) AS max_value
+# FROM your_table
+# WHERE sensor_id IN (2, 3, 4)
+# GROUP BY sensor_id;
+def prepare_data(config, task):
+    now = datetime.strptime(task['START_AT'].strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+
+    date_to = now.strftime("%Y-%m-%d")
+    date_from = (now - timedelta(days=config['TIMESTAMP_DAYS'])).strftime("%Y-%m-%d")
+    print('date from ', date_from, ' date to ', date_to)
+
+    sql = "SELECT p.sensor_id, s.name, MAX(p.value) AS max_value FROM " + settings.TABLE_PREDICTIONS + " p LEFT JOIN "+ settings.TABLE_SENSORS +" s on p.SENSOR_ID = s.ID"
+    sql += " WHERE RECORD_TIME >= TO_DATE(:date_from, 'YYYY-MM-DD') AND RECORD_TIME < TO_DATE(:date_to, 'YYYY-MM-DD') + INTERVAL '1' DAY"
+    sql += " GROUP BY p.sensor_id, s.name"
+    params = {"date_from": date_from, "date_to": date_to}
+    df = fetch_all(sql, params)
+
+    print(f"data_records_count: {len(df)}")
+    return df

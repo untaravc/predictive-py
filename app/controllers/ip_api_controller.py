@@ -21,12 +21,14 @@ async def point_search(query: str = None):
     print("Items found: ", str(len(items)))
     for i in range(len(items)):
         status = 1
-        if "prediksi" in items[i]["Name"].lower() or "tes" in items[i]["Name"].lower():
+        # if "prediksi" in items[i]["Name"].lower() or "tes" in items[i]["Name"].lower():
+        #     status = 0
+        if items[i]["Id"] > 200000:
             status = 0
+
         # insert to db if not exist
         has_record = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE "+ settings.TABLE_SENSORS +".ID = :id", {"id": items[i]["Id"]})
         if(has_record == None):
-            print("Inserting sensor ", items[i]["Name"])
             execute_query(
                 "INSERT INTO "+ settings.TABLE_SENSORS +" (ID, WEB_ID, NAME, PATH, DESCRIPTOR, IS_ACTIVE, CREATED_AT, UPDATED_AT) VALUES (:id, :web_id, :name, :path, :descriptor, :status, SYSDATE, SYSDATE)",
                 {"id": items[i]["Id"], "web_id": items[i]["WebId"], "name": items[i]["Name"], "path": items[i]["Path"] ,"descriptor": items[i]["Descriptor"], "status": status}
@@ -236,7 +238,7 @@ async def predictions(request: Request):
         "result": result
     }
 
-async def access_interpolated_data_ip():
+def access_interpolated_data_ip():
     # result = await get_interpolated_data()
 
     return {

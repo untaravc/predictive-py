@@ -131,7 +131,7 @@ def lgbm_config(unit: str):
                     "SKR3.STATOR WIND TEMP6 U3",
                 ],
                 "TARGET_COLS": [
-                     "SKR3.METAL TEMP 1 U3",
+                    "SKR3.METAL TEMP 1 U3",
                     "SKR3.METAL TEMP 2 U3",
                     "SKR3.OIL TEMP. U3",
                     "SKR3.UP GD&TH BRGOIL TEMP U3",

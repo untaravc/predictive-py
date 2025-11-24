@@ -53,12 +53,15 @@ class Settings(BaseSettings):
     URL_POINT_SEARCH: str =""
     URL_STREAM_INTERPOLATED : str =""
     # INTERPOLATED_URL: str="https://pivision.plnindonesiapower.co.id/piwebapi/streams/"
-    INTERPOLATED_URL: str="https://piwebapi-pool.plnindonesiapower.co.id/piwebapi/streams/"
+    # INTERPOLATED_URL: str="https://piwebapi2.plnindonesiapower.co.id/piwebapi/streams/"
+    INTERPOLATED_URL: str="https://piwebapi.plnindonesiapower.co.id/piwebapi/streams/"
 
     # Pengaturan OSISOF
     OSISOF_USER: str =""
     OSISOF_PASSWORD: str =""
-    OSISOF_URL: str =""
+    # OSISOF_URL: str ="https://pivision.plnindonesiapower.co.id/piwebapi/"
+    # OSISOF_URL: str ="https://piwebapi2.plnindonesiapower.co.id/piwebapi/"
+    OSISOF_URL: str ="https://piwebapi-pool.plnindonesiapower.co.id/piwebapi/"
 
     # Pengaturan Table
     TABLE_SENSORS: str = "ugm25_sensors"
@@ -80,7 +83,7 @@ class Settings(BaseSettings):
 
     # Schedule Period
     CRON_EXECUTE_RECORD_API: str = "* * * * *" # Default per menit akan menjalankan task download sesuai RECORD_PER_SESSION
-    CRON_EXECUTE_PREDICT: str = "0 * * * *" # Default per jam akan menjalankan predict
+    CRON_EXECUTE_PREDICT: str = "0 0 * * *" # Default per jam akan menjalankan predict
     CRON_EXECUTE_UPLOAD: str = "*/10 * * * *" # Default per 10 menit akan menjalankan upload sesuai UPLOAD_PERSESION
     CRON_CREATE_TASK_RECORD: str = "0 0 * * *" # Default: Pembuatan task perhari apa 00:00
     CRON_CREATE_TASK_PREDICT: str = "0 0 * * *" # Default: Pembuatan task perhari apa 00:00

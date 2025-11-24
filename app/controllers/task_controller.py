@@ -22,7 +22,7 @@ async def action_create_task_upload():
         "result": result
     }
 
-async def action_create_task_upload_max():
+def action_create_task_upload_max():
     result = create_task_upload_max()
     return {
         "success": True,
@@ -38,6 +38,14 @@ async def action_create_task_prescriptive():
 
 async def action_task_delete():
     result = await task_delete()
+    return {
+        "success": True,
+        "result": result
+    }
+
+# EXECUTE TASK ===========================================================
+async def action_execute_record_api():
+    result = await execute_record_api()
     return {
         "success": True,
         "result": result
@@ -61,12 +69,6 @@ async def action_execute_prescriptive():
     result = await execute_prescriptive()
     return {
         "success": True,
-        "result": "execute_prescriptive"
-    }
-async def action_execute_record_api():
-    result = await execute_record_api()
-    return {
-        "success": True,
         "result": result
     }
 
@@ -84,7 +86,7 @@ async def action_execute_upload_prescriptive():
         "result": result
     }
 
-async def action_execute_upload_max():
+def action_execute_upload_max():
     result = execute_upload_max()
     return {
         "success": True,

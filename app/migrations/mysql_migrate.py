@@ -23,7 +23,7 @@ db_config = {
     "port": DB_PORT,
 }
 
-async def run_migration(direction: str):
+def run_migration(direction: str):
     base_dir = os.path.dirname(os.path.abspath(__file__))
     migration_path = os.path.join(base_dir, f"*.{direction}.sql")
     migration_files = sorted(glob.glob(migration_path))
@@ -41,7 +41,7 @@ async def run_migration(direction: str):
                 sql_commands = f.read()
 
             try:
-                async with conn.transaction():
+                with conn.transaction():
                     await conn.execute(sql_commands)
                 print(f"✅ Applied {direction.upper()} migration: {os.path.basename(file_path)}")
             except Exception as e:

@@ -1,7 +1,7 @@
 from fastapi import Request
 from app.utils.oracle_db import execute_query
 
-async def home():
+def home():
     return {
         "success": True,
         "result": {
@@ -15,7 +15,7 @@ async def home():
         },
     }
 
-async def sql_statement(request: Request):
+def sql_statement(request: Request):
     statement = request.query_params.get("s")
     result = execute_query(statement)
     return {

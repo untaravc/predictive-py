@@ -9,7 +9,7 @@ from app.configs.base_conf import settings
 load_dotenv()
 scheduler = AsyncIOScheduler()
 
-async def lifespan(app: FastAPI):
+def lifespan(app: FastAPI):
     scheduler.start()
     if settings.RUN_SCHEDULER == "true":
         if not scheduler.get_job("execute_record_api"):

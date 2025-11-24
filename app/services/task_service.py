@@ -2,6 +2,7 @@ from app.utils.oracle_db import fetch_all, execute_query, fetch_one
 from app.services.generator_service import generate_timestamps
 from datetime import datetime, timedelta
 from app.configs.lgbm_conf import lgbm_config
+from app.configs.lstm_conf import lstm_config
 from app.configs.base_conf import settings
 from app.services.vibration_proccess_service import process_excel
 import os
@@ -10,26 +11,33 @@ import re
 
 # Membuat task untuk pemanggilan API Record tiap sensor
 # Membuat task untuk menjalankan model predict
-async def create_task_record():
-    print("Service: create_task_record", settings.TABLE_SENSORS, settings.SENSOR_NAME_QUERY)
-    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'" + settings.SENSOR_NAME_QUERY + "' AND WEB_ID IS NOT NULL AND IS_ACTIVE = 1")
-    now = datetime.now()
+def create_task_record():
+    units = ["1", "2", "3", "4"]
 
-    if settings.TIME_PRETEND != "":
-        now = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
+    for unit in units:
+        config = lstm_config(unit)
 
-    start = now.strftime("%Y-%m-%d 00:00:00")
-    end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+        sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE WEB_ID IS NOT NULL")
+        now = datetime.now()
 
-    for sensor in sensors:
-        print("Start sensor ", sensor["ID"])
-        timestamps = generate_timestamps(start, end, settings.RECORD_TIME_PERIOD, 0)
-        query, params = build_insert_many(timestamps, sensor["ID"], "record")
-        execute_query(query, params)
+        if settings.TIME_PRETEND != "":
+            now = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
+
+        start = now.strftime("%Y-%m-%d 00:00:00")
+        end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+
+        for sensor in sensors:
+            if sensor['NAME'] not in config['INPUT_COLS']:
+                continue
+
+            print("Start sensor ", sensor["ID"])
+            timestamps = generate_timestamps(start, end, settings.RECORD_TIME_PERIOD, 0)
+            query, params = build_insert_many(timestamps, sensor["ID"], "record")
+            execute_query(query, params)
 
     return "Success"
 
-async def create_task_predict():
+def create_task_predict():
     print("Service: create_task_predict")
     now = datetime.now()
 
@@ -47,7 +55,7 @@ async def create_task_predict():
 
     return "Success"
 
-async def update_vibration():
+def update_vibration():
     folder_path = settings.VIBRATION_FOLDER_PATH
 
     for root, dirs, files in os.walk(folder_path):
@@ -74,7 +82,7 @@ async def update_vibration():
 
     return "Success"
 
-async def create_task_upload():
+def create_task_upload():
     print("Service: create_task_upload")
     now = datetime.now()
 
@@ -123,7 +131,7 @@ def create_task_upload_max():
 
     return "Success"
 
-async def create_task_prescriptive():
+def create_task_prescriptive():
     print("Service: create_task_prescriptive")
     now = datetime.now()
 
@@ -141,7 +149,7 @@ async def create_task_prescriptive():
 
     return "Success"
 
-async def task_delete():
+def task_delete():
     print("Service: delete_task")
     execute_query("DELETE FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 1")
 

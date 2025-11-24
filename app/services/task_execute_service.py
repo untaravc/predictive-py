@@ -11,6 +11,12 @@ from app.utils.helper import chunk_list
 from app.predictions.unit1_v1 import run_unit1_lstm_final
 from app.predictions.lgbm import run_lgbm
 
+class TimeoutException(Exception):
+    pass
+
+def handler(signum, frame):
+    raise TimeoutException()
+
 async def execute_record_sample():
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
     print('Start execute_record_sample ', str(len(tasks)))
@@ -28,57 +34,57 @@ async def execute_record_sample():
 async def execute_record_api():
     print('Start execute_record_api')
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete != 1 AND category = 'record' AND PARAMS > 1000 AND START_AT < SYSDATE FETCH FIRST " + str(settings.RECORD_PER_SESSION) + " ROWS ONLY")
-    print("Record api found ", str(len(tasks)))
 
     for task in tasks:
-        try:
-            sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
-            startTime = 't-'+ str(settings.RECORD_BACK_DATE) +'d'
-            endTime = '*'
+        sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
+        startTime = 't-'+ str(settings.RECORD_BACK_DATE) +'d'
+        endTime = '*'
+        interval = '5m'
+
+        if settings.TIME_PRETEND != "":
+            target = datetime.strptime(task["START_AT"].strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+            now = datetime.now()
+            selisih = now - target
+            hari = selisih.days
+
+            startTime = 't-' + str(hari + settings.RECORD_BACK_DATE) + 'd'
+            endTime = 't-' + str(hari) + 'd'
             interval = '5m'
 
-            if settings.TIME_PRETEND != "":
-                # target = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
-                target = datetime.strptime(task["START_AT"].strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
-                now = datetime.now()
-                selisih = now - target
-                hari = selisih.days
+        print('Start time ' + startTime + ' end time ' + endTime + ' interval ' + interval)
 
-                startTime = 't-' + str(hari + settings.RECORD_BACK_DATE) + 'd'
-                endTime = 't-' + str(hari) + 'd'
-                interval = '5m'
-
-            print('Start time ' + startTime + ' end time ' + endTime + ' interval ' + interval)
-            print('Result api ' + sensor["WEB_ID"] + " " + sensor["NAME"] + ' ' + str(sensor['ID']))
-
-            url = settings.INTERPOLATED_URL + sensor["WEB_ID"] + "/interpolated?startTime=" + startTime + "&endTime=" + endTime + "&interval=" + interval
-            result = await fetch_data_with_basic_auth(url)
-            items = result['result']['Items']
-            print('Result api ' + str(len(items)) + ' items')
-
-            insert_data = []
-            for item in items:
-                val = item['Value']
-                value_num = 0 if isinstance(val, dict) else val
-
-                ts = item.get("Timestamp", "")
-                if ts.endswith("Z"):
-                    ts = ts[:-1]
-
-                insert_data.append({
-                    "Timestamp": ts,
-                    "Value": value_num
-                })
-
-            for i, chunk in enumerate(chunk_list(insert_data, 500), start=1):
-                print(f"Processing batch {i} ({len(chunk)} records)")
-                query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk[:-1])
-                execute_query(query, params)
-
-            if len(insert_data) > 0:
-                execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
-        except:
+        url = settings.INTERPOLATED_URL + sensor["WEB_ID"] + "/interpolated?startTime=" + startTime + "&endTime=" + endTime + "&interval=" + interval
+        print('Url ' + url)
+        result = await fetch_data_with_basic_auth(url)
+        
+        if result['success'] == False:
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
             continue
+
+        items = result['result']['Items']
+        print('Result api ' + str(len(items)) + ' items')
+
+        insert_data = []
+        for item in items:
+            val = item['Value']
+            value_num = 0 if isinstance(val, dict) else val
+
+            ts = item.get("Timestamp", "")
+            if ts.endswith("Z"):
+                ts = ts[:-1]
+
+            insert_data.append({
+                "Timestamp": ts,
+                "Value": value_num
+            })
+
+        for i, chunk in enumerate(chunk_list(insert_data, 500), start=1):
+            print(f"Processing batch {i} ({len(chunk)} records)")
+            query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk[:-1])
+            execute_query(query, params)
+
+        if len(insert_data) > 0:
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return {
         "sensor" : tasks
@@ -103,9 +109,9 @@ async def execute_prescriptive():
     print('Tasks', len(tasks))
 
     for task in tasks:
-        print("Generating predict for sensor ", task["PARAMS"])
-        run_prescriptive(task)
-        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        print("Generating predict for unit: ", task["PARAMS"])
+        return run_prescriptive(task)
+        # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
 
@@ -260,24 +266,30 @@ def execute_upload_max():
 
         max_value = fetch_all(query)
 
-        print(max_value[0])
+        if max_value[0]["MAX_VALUE"] == None:
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+            print("No max value")
+            continue
+
         print("URL", settings.OSISOF_URL)
         client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         path = f"\\\\PI1\{sensor['NAME']}.prediksi.max"
+
         try:
             point1 = client.point.get_by_path(path, None)
-        except:
-            print("Point not found: ", path)
-            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        except Exception as e:
+            print("Point not found:", path, "Error:", e)
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id",
+                        {"id": task["ID"]})
             continue
 
         print("Web ID Found:",point1.web_id)
 
         streamValue1 = PIStreamValues()
         
-        total_data = 4
+        total_data = 6
         now = datetime.now()
         start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -301,8 +313,5 @@ def execute_upload_max():
         streamValues = list()
         streamValues.append(streamValue1)
 
-        # try:
-        print("Start sending...")
         response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
         print(response)
-        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})

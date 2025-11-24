@@ -83,7 +83,7 @@ def getPIWebApiClient(webapi_url, usernme, psswrd):
     #                     'Substituted2','UnitsAbbreviation2','Timestamp2'], inplace=True)
     # return df
 
-async def post_prediction_result():
+def post_prediction_result():
     client = getPIWebApiClient(webapi, username, password)
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
