@@ -30,7 +30,7 @@ def action_create_task_upload_max():
     }
 
 async def action_create_task_prescriptive():
-    result = await create_task_prescriptive()
+    result = create_task_prescriptive()
     return {
         "success": True,
         "result": result

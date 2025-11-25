@@ -12,6 +12,8 @@ from app.configs.prescriptive_conf import prescriptive_config
 from app.utils.oracle_db import fetch_all
 from app.configs.base_conf import settings
 from datetime import datetime, timedelta
+from osisoft.pidevclub.piwebapi.pi_web_api_client import PIWebApiClient
+from osisoft.pidevclub.piwebapi.models import PIAnalysis, PIItemsStreamValues, PIStreamValues, PITimedValue, PIRequest
 warnings.filterwarnings('ignore')
 
 def run_prescriptive(task):
@@ -30,15 +32,41 @@ def execute_prescriptive(config, task):
     print("Data loaded and processed successfully.")
 
     items = prepare_data(config, task)
-    input = {item["NAME"]: [item["MAX_VALUE"]] for item in items}
+    item_filterd = []
+    for item in items:
+        if item["NAME"] in config["VARIABLE_LIST"]:
+            item_filterd.append(item)
+
+    input = {item["NAME"]: [item["MAX_VALUE"]] for item in item_filterd}
+    print(input)
     
     result = process_input(input, components, df_fmea)
 
-    print("Prediction completed successfully.")
-    save_to_excel(result, config["OUTPUT_DIR"])
-    print("Result saved to Excel successfully.")
+    upload_trip = result["summary"]["trip_count"]
+    upload_alarm = result["summary"]["alarm_count"]
 
-    return input
+    upload_failure_mode_1 = ""
+    upload_item_identification_1 = ""
+    upload_level_1 = ""
+    upload_procedure_1 = ""
+    upload_recommendation_1 = ""
+
+    upload_failure_mode_2 = ""
+    upload_item_identification_2 = ""
+    upload_level_2 = ""
+    upload_procedure_2 = ""
+    upload_recommendation_2 = ""
+
+    upload_failure_mode_3 = ""
+    upload_item_identification_3 = ""
+    upload_level_3 = ""
+    upload_procedure_3 = ""
+    upload_recommendation_3 = ""
+    print("TRIGGEREDS: ", len(result["triggered_fmea"]))
+
+    # save_to_excel(result, config["OUTPUT_DIR"])
+    print("Prediction completed successfully.")
+    return "OKE"
     
 def load_threshold_data(threshold_file, components, variable_list):
     """Load dan proses data threshold dari file Excel"""
@@ -105,6 +133,7 @@ def load_excel_data(excel_path):
     return df_fmea
 
 def process_input(input_data, components, df_fmea):
+        print("Processing input data...")
         """
         Process input dataframe dan generate output
         
@@ -140,7 +169,7 @@ def process_input(input_data, components, df_fmea):
         variable_status = []
         trip_vars = []
         alarm_vars = []
-        
+
         for var_name, max_val in max_values.items():
             if var_name in components:
                 params = components[var_name]
@@ -164,7 +193,6 @@ def process_input(input_data, components, df_fmea):
         
         # Evaluasi FMEA triggers dengan logika AND
         triggered_fmea = []
-        
         if df_fmea is not None:
             for row_idx in range(9, 247):  # Baris 10-247 (index 9-246)
                 if row_idx >= len(df_fmea):
@@ -246,6 +274,7 @@ def process_input(input_data, components, df_fmea):
             overall_status = "ALARM"
         else:
             overall_status = "NORMAL"
+        
         
         # Summary
         summary = {
@@ -528,3 +557,8 @@ def prepare_data(config, task):
 
     print(f"data_records_count: {len(df)}")
     return df
+
+def upload_pivision():
+    client = PIWebApiClient(webapi_url, False, 
+                            username=usernme, password=psswrd, verifySsl=False)
+    pass

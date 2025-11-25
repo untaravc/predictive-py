@@ -59,9 +59,9 @@ class Settings(BaseSettings):
     # Pengaturan OSISOF
     OSISOF_USER: str =""
     OSISOF_PASSWORD: str =""
-    OSISOF_URL: str ="https://piwebapi.plnindonesiapower.co.id/piwebapi"
+    # OSISOF_URL: str ="https://piwebapi.plnindonesiapower.co.id/piwebapi"
     # OSISOF_URL: str ="https://piwebapi2.plnindonesiapower.co.id/piwebapi"
-    # OSISOF_URL: str ="https://piwebapi-pool.plnindonesiapower.co.id/piwebapi/"
+    OSISOF_URL: str ="https://piwebapi-pool.plnindonesiapower.co.id/piwebapi"
     # OSISOF_URL: str ="https://pivision.plnindonesiapower.co.id/piwebapi/"
 
     # Pengaturan Table
@@ -83,12 +83,14 @@ class Settings(BaseSettings):
     VIBRATION_FOLDER_PATH: str = ""
 
     # Schedule Period
-    CRON_EXECUTE_RECORD_API: str = "* * * * *" # Default per menit akan menjalankan task download sesuai RECORD_PER_SESSION
-    CRON_EXECUTE_PREDICT: str = "0 0 * * *" # Default per jam akan menjalankan predict
-    CRON_EXECUTE_UPLOAD: str = "*/10 * * * *" # Default per 10 menit akan menjalankan upload sesuai UPLOAD_PERSESION
     CRON_CREATE_TASK_RECORD: str = "0 0 * * *" # Default: Pembuatan task perhari apa 00:00
     CRON_CREATE_TASK_PREDICT: str = "0 0 * * *" # Default: Pembuatan task perhari apa 00:00
     CRON_CREATE_TASK_UPLOAD: str = "0 0 * * *" # Default: Pembuatan task perhari apa 00:00
+    
+    CRON_EXECUTE_RECORD_API: str = "* * * * *" # Default per menit akan menjalankan task download sesuai RECORD_PER_SESSION
+    CRON_EXECUTE_PREDICT: str = "0 0 * * *" # Default per jam akan menjalankan predict
+    CRON_EXECUTE_UPLOAD: str = "*/10 * * * *" # Default per 10 menit akan menjalankan upload sesuai UPLOAD_PERSESION
+    CRON_EXECUTE_UPLOAD_MAX: str = "* * * * *" # Default: Pembuatan task per menit
 
     class Config:
         env_file = ".env"

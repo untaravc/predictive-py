@@ -4,18 +4,12 @@ from datetime import datetime, timedelta
 from app.archives.ip_api_service import fetch_data_with_basic_auth
 import urllib3
 from osisoft.pidevclub.piwebapi.pi_web_api_client import PIWebApiClient
-from osisoft.pidevclub.piwebapi.models import PIAnalysis, PIItemsStreamValues, PIStreamValues, PITimedValue, PIRequest
+from osisoft.pidevclub.piwebapi.models import PIStreamValues, PITimedValue
 from app.configs.base_conf import settings
 from app.predictions.prescriptive import run_prescriptive
 from app.utils.helper import chunk_list
 from app.predictions.unit1_v1 import run_unit1_lstm_final
 from app.predictions.lgbm import run_lgbm
-
-class TimeoutException(Exception):
-    pass
-
-def handler(signum, frame):
-    raise TimeoutException()
 
 async def execute_record_sample():
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
@@ -290,7 +284,7 @@ def execute_upload_max():
 
         streamValue1 = PIStreamValues()
         
-        total_data = 6
+        total_data = 4 * 7
         now = datetime.now()
         start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -315,4 +309,6 @@ def execute_upload_max():
         streamValues.append(streamValue1)
 
         response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
-        print(response)
+        print("RESPONSE:", response)
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id",
+                        {"id": task["ID"]})
