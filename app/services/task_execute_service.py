@@ -104,7 +104,7 @@ async def execute_prescriptive():
     for task in tasks:
         print("Generating predict for unit: ", task["PARAMS"])
         return run_prescriptive(task)
-        # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
 
