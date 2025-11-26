@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     # Berapa task UPLOAD yang dikerjakan salam satu schedule. rekemdasi 1
     UPLOAD_PERSESION: int=1
+    UPLOAD_MAX_PERSESION: int=4
 
     # Flow
     # 1. Create Task
