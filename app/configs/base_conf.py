@@ -1,9 +1,12 @@
 from pydantic_settings import BaseSettings
 import os
 class Settings(BaseSettings):
+    # Mengaktifkan fungsi scheduler
+    RUN_SCHEDULER: str = "true"
     # Memisalkan saat ini adalah "2025-09-01 00:00:00". Fungsi akan mengambil record berdasarkan nilai ini kebelakang.
     # Isi "" bila akan menggunakan waktu sekarang
     TIME_PRETEND: str = ""
+    BASE_PATH: str = ""
 
     # berapa hari kebelakang dalam pengambilan data record, sesuaikan dengan model input.
     RECORD_BACK_DATE: int=21
@@ -34,9 +37,6 @@ class Settings(BaseSettings):
     # 2.a Memanggil API Record tiap sensor
     # 2.b Menjalankan model predict
     # 2.c Menjalankan upload data prediksi ke PI Vision
-
-    # Mengaktifkan fungsi scheduler
-    RUN_SCHEDULER: str = "true"
 
     # Pengaturan Database
     ORACLE_DB_USER: str =""

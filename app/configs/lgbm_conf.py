@@ -1,3 +1,4 @@
+from app.configs.base_conf import settings
 def lgbm_config(unit: str):
     match unit:
         case "1":
@@ -6,8 +7,8 @@ def lgbm_config(unit: str):
                 "SENSOR_NAME_QUERY_STAR": "SKR1*",
                 "PREDICT_UNIT":  1,
                 "SENSOR_NAME_QUERY_VIBRATION": "SKR2.Generator%",
-                "MODEL_FILE": "/Users/macbookpro/Documents/Projects/Pse/code/storage/lgbm/unit1/lgbm.pkl",
-                "OUTPUT_DIR": "/Users/macbookpro/Documents/Projects/Pse/code/storage/lgbm/unit1/",
+                "MODEL_FILE": settings.BASE_PATH + "storage/lgbm/unit1/lgbm.pkl",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/lgbm/unit1/",
                 "FREQ": '5T',
                 "INPUT_WINDOW": 6048,
                 "HORIZON": 2016,
@@ -106,8 +107,8 @@ def lgbm_config(unit: str):
                 "SENSOR_NAME_QUERY_STAR": "SKR3*",
                 "PREDICT_UNIT":  3,
                 "SENSOR_NAME_QUERY_VIBRATION": "SKR3.Generator%",
-                "MODEL_FILE": "/Users/macbookpro/Documents/Projects/Pse/code/storage/lgbm/unit3/lgbm.pkl",
-                "OUTPUT_DIR": "/Users/macbookpro/Documents/Projects/Pse/code/storage/lgbm/unit3/",
+                "MODEL_FILE": settings.BASE_PATH + "storage/lgbm/unit3/lgbm.pkl",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/lgbm/unit3/",
                 "FREQ": '5T',
                 "INPUT_WINDOW":6048,
                 "HORIZON": 2016,
@@ -155,8 +156,8 @@ def lgbm_config(unit: str):
                 "SENSOR_NAME_QUERY_STAR": "SKR4*",
                 "PREDICT_UNIT":  4,
                 "SENSOR_NAME_QUERY_VIBRATION": "SKR4.Generator%",
-                "MODEL_FILE": "/Users/macbookpro/Documents/Projects/Pse/code/storage/lgbm/unit4/lgbm.pkl",
-                "OUTPUT_DIR": "/Users/macbookpro/Documents/Projects/Pse/code/storage/lgbm/unit4/",
+                "MODEL_FILE": settings.BASE_PATH + "storage/lgbm/unit4/lgbm.pkl",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/lgbm/unit4/",
                 "FREQ": '5T',
                 "INPUT_WINDOW":6048,
                 "HORIZON": 2016,

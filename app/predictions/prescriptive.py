@@ -18,18 +18,30 @@ warnings.filterwarnings('ignore')
 
 def run_prescriptive(task):
     config = prescriptive_config(task['PARAMS'])
-    return execute_prescriptive(config, task)
+    excel_path = config['FMEA_PATH']
+    threshold_file = config['THRESHOLD_PATH']
+    unit = "U" + task['PARAMS']
 
-def execute_prescriptive(config, task):
-    # output_dir = Path(output_dir) if output_dir else Path.cwd()
-    # output_dir.mkdir(parents=True, exist_ok=True)
-
-    components = {}
+    output_dir = Path(config["OUTPUT_DIR"]) if config["OUTPUT_DIR"] else Path.cwd()
+    output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Load threshold and FMEA data
-    load_threshold_data(config["THRESHOLD_PATH"], components, config["VARIABLE_LIST"])
-    df_fmea = load_excel_data(config["FMEA_PATH"])
-    print("Data loaded and processed successfully.")
+    # Dictionary untuk menyimpan variabel dan parameternya
+    components = {}
+
+    df_fmea = load_excel_data(unit, excel_path)
+    
+    variable_list = load_variables_from_file(df_fmea, output_dir)
+
+    print(variable_list)
+    
+    load_threshold_data(unit, threshold_file, variable_list, components)
+
+    print("\n" + "="*80)
+    print("EXTRACTED VARIABLES:")
+    print("="*80)
+    for idx, var in enumerate(variable_list, 1):
+        print(f"{idx}. {var}")
+    print(f"\nTotal: {len(variable_list)} variables")
 
     items = prepare_data(config, task)
     item_filterd = []
@@ -38,8 +50,8 @@ def execute_prescriptive(config, task):
             item_filterd.append(item)
 
     input = {item["NAME"]: [item["MAX_VALUE"]] for item in item_filterd}
-    print(input)
-    
+    # print(input)
+
     result = process_input(input, components, df_fmea)
 
     upload_trip = result["summary"]["trip_count"]
@@ -62,17 +74,163 @@ def execute_prescriptive(config, task):
     upload_level_3 = ""
     upload_procedure_3 = ""
     upload_recommendation_3 = ""
+
+    save_to_excel(result, config["OUTPUT_DIR"], filename=f"monitoring_report_{task['ID']}.xlsx")
     print("TRIGGEREDS: ", len(result["triggered_fmea"]))
 
     # save_to_excel(result, config["OUTPUT_DIR"])
     print("Prediction completed successfully.")
+
     return "OKE"
+
+def load_variables_from_file(df_fmea, output_dir):
+        """
+        Load variabel dari file txt (extracted_variables.txt)
+        Jika file tidak ada, ekstrak dari FMEA dan buat file baru
+        
+        Returns:
+        --------
+        list : List variabel dari file (normalized)
+        """
+        variables_file = output_dir / "extracted_variables.txt"
+        
+        # Cek apakah file sudah ada
+        if variables_file.exists():
+            try:
+                with open(variables_file, "r", encoding="utf-8") as f:
+                    variables = [line.strip() for line in f.readlines() if line.strip()]
+                print(f"✅ Loaded {len(variables)} variables from: {variables_file}")
+                return variables
+            except Exception as e:
+                print(f"❌ Error reading variables file: {str(e)}")
+                print("Extracting variables from FMEA instead...")
+        
+        # Jika file tidak ada atau error, ekstrak dari FMEA
+        print("📋 File not found. Extracting variables from FMEA...")
+        return extract_variables_from_fmea(df_fmea, output_dir)
+
+def extract_variables_from_fmea(df_fmea, output_dir):
+        """
+        Ekstrak semua variabel unik dari kolom 'Related Variable(s)' di file FMEA
+        Simpan ke file txt dan return list variabel
+        
+        Returns:
+        --------
+        list : List variabel unik yang diekstrak (normalized)
+        """
+        all_variables = set()
+        
+        if df_fmea is None:
+            print("❌ Warning: FMEA data not loaded. Skipping variable extraction.")
+            return []
+        
+        try:
+            # Loop melalui kolom Related Variable(s)
+            for row_idx in range(len(df_fmea)):
+                related_vars = df_fmea.iloc[row_idx]["Related Variable(s)"]
+                
+                # Parse variabel dengan pemisah multiple
+                vars_list = parse_related_variables(related_vars)
+                
+                # Tambahkan ke set (otomatis unique)
+                for var in vars_list:
+                    if var and var.lower() != "none":
+                        all_variables.add(var)
+        
+        except Exception as e:
+            print(f"❌ Error extracting variables: {str(e)}")
+            return []
+        
+        # Sort alphabetically
+        sorted_variables = sorted(all_variables)
+        
+        # Simpan ke file txt
+        try:
+            output_file = output_dir / "extracted_variables.txt"
+            with open(output_file, "w", encoding="utf-8") as f:
+                for var in sorted_variables:
+                    f.write(f"{var}\n")
+            
+            print(f"✅ Extracted {len(sorted_variables)} variables from FMEA")
+            print(f"📄 Saved to: {output_file}")
+        
+        except Exception as e:
+            print(f"❌ Error saving variables to file: {str(e)}")
+        
+        return sorted_variables
+
+def parse_related_variables(cell_str):
+    """
+    Parse Related Variable(s) dari cell string
+    Pemisah bisa: newline (\n), semicolon (;), atau comma (,)
     
-def load_threshold_data(threshold_file, components, variable_list):
-    """Load dan proses data threshold dari file Excel"""
+    Parameters:
+    -----------
+    cell_str : str
+        String dari cell Related Variable(s)
+    
+    Returns:
+    --------
+    list : List variabel yang sudah dinormalisasi
+    """
+    if pd.isna(cell_str):
+        return []
+    
+    cell_str = str(cell_str)
+    
+    # Split by multiple separators: newline, semicolon, comma
+    # Ganti semicolon dan comma dengan newline dulu
+    cell_str = cell_str.replace(";", "\n").replace(",", "\n")
+    
+    # Split by newline
+    lines = [line.strip() for line in cell_str.split('\n') if line.strip()]
+    
+    # Normalize setiap variabel
+    normalized_vars = [normalize_variable_name(var) for var in lines]
+    
+    return normalized_vars
+
+def normalize_variable_name(var_name):
+    """
+    Normalize nama variabel:
+    - Convert ke lowercase
+    - Replace space dengan underscore
+    - Strip whitespace di awal/akhir
+    
+    Parameters:
+    -----------
+    var_name : str
+        Nama variabel original
+    
+    Returns:
+    --------
+    str : Nama variabel yang sudah dinormalisasi
+    """
+    if not isinstance(var_name, str):
+        return var_name
+    
+    # Strip whitespace di awal dan akhir
+    var_name = var_name.strip()
+    
+    # Convert ke lowercase
+    var_name = var_name.lower()
+    
+    # Replace space dengan underscore
+    var_name = var_name.replace(" ", "_")
+    
+    return var_name
+        
+    
+def load_threshold_data(unit, threshold_file, variable_list, components):
+    """Load dan proses data threshold dari file Excel sesuai unit"""
     try:
-        # Baca file threshold
-        df_threshold = pd.read_excel(threshold_file, header=4)
+        # Tentukan sheet name berdasarkan unit
+        sheet_name = f"Threshold {unit}"
+        
+        print(f"Loading threshold from sheet: {sheet_name}")
+        
+        # Baca file threshold dengan sheet yang sesuai
+        df_threshold = pd.read_excel(threshold_file, sheet_name=sheet_name)
         
         # Default values untuk variabel yang tidak ada di threshold
         default_config = {
@@ -83,8 +241,10 @@ def load_threshold_data(threshold_file, components, variable_list):
         
         # Populate components dari variable_list
         for var_name in variable_list:
-            # Cari variabel di threshold file
-            threshold_row = df_threshold[df_threshold["TAG NAME"] == var_name]
+            # Cari variabel di threshold file (case-insensitive)
+            threshold_row = df_threshold[
+                df_threshold["TAG NAME"].str.lower().str.replace(" ", "_") == var_name
+            ]
             
             if len(threshold_row) > 0:
                 # Variabel ada di threshold file
@@ -99,11 +259,20 @@ def load_threshold_data(threshold_file, components, variable_list):
                 }
             else:
                 # Variabel tidak ada di threshold file, gunakan default
-                print(f"Variabel '{var_name}' tidak ditemukan di file threshold. Menggunakan nilai default.")
+                print(f"⚠️  Variabel '{var_name}' tidak ditemukan di threshold. Menggunakan default.")
                 components[var_name] = default_config.copy()
                 
+    except FileNotFoundError:
+        print(f"❌ Sheet '{sheet_name}' tidak ditemukan di file threshold")
+        # Set default values jika ada error
+        for var_name in variable_list:
+            components[var_name] = {
+                "unit": "mm/s",
+                "alarm": 65,
+                "trip": 80
+            }
     except Exception as e:
-        print(f"Error loading threshold data: {str(e)}")
+        print(f"❌ Error loading threshold data: {str(e)}")
         # Set default values jika ada error
         for var_name in variable_list:
             components[var_name] = {
@@ -112,35 +281,40 @@ def load_threshold_data(threshold_file, components, variable_list):
                 "trip": 80
             }
     
-def load_excel_data(excel_path):
-    """Load data dari Excel FMEA"""
+def load_excel_data(unit, excel_path):
+    """Load data dari Excel FMEA sesuai dengan unit yang dipilih"""
     try:
+        # Tentukan sheet name berdasarkan unit
+        sheet_name = f"FMEA {unit}"
+        
+        print(f"Loading FMEA from sheet: {sheet_name}")
+        
         # Baca file Excel dengan ketentuan: header di baris 8, skip baris 9, data mulai baris 10
         df = pd.read_excel(
             excel_path,
+            sheet_name=sheet_name,
             header=7,  # 0-based index, jadi 7 untuk baris 8
             skiprows=[8]  # Skip baris 9 (0-based index 8)
         )
         df_fmea = df.ffill()  # Mengatasi sel NaN karena merged
-        
+        return df_fmea
     except FileNotFoundError:
-        print(f"Error: File tidak ditemukan: {excel_path}")
+        print(f"❌ Error: File tidak ditemukan: {excel_path}")
         df_fmea = None
     except Exception as e:
-        print(f"Error membaca Excel: {str(e)}")
+        print(f"❌ Error membaca Excel: {str(e)}")
         df_fmea = None
 
-    return df_fmea
-
 def process_input(input_data, components, df_fmea):
-        print("Processing input data...")
         """
         Process input dataframe dan generate output
+        Input dapat berupa dictionary dengan nama variabel yang belum dinormalisasi
         
         Parameters:
         -----------
         input_data : dict
             Dictionary dengan format {"var_name": [list angka], ...}
+            var_name akan dinormalisasi secara otomatis
         
         Returns:
         --------
@@ -156,9 +330,15 @@ def process_input(input_data, components, df_fmea):
         if not isinstance(input_data, dict):
             raise ValueError("Input harus berupa dictionary")
         
+        # Normalize input_data keys
+        normalized_input = {}
+        for var_name, values in input_data.items():
+            normalized_var = normalize_variable_name(var_name)
+            normalized_input[normalized_var] = values
+        
         # Extract max values dari setiap variabel
         max_values = {}
-        for var_name, values in input_data.items():
+        for var_name, values in normalized_input.items():
             if var_name in components:
                 if isinstance(values, list) and len(values) > 0:
                     max_values[var_name] = max(values)
@@ -169,7 +349,7 @@ def process_input(input_data, components, df_fmea):
         variable_status = []
         trip_vars = []
         alarm_vars = []
-
+  
         for var_name, max_val in max_values.items():
             if var_name in components:
                 params = components[var_name]
@@ -193,37 +373,40 @@ def process_input(input_data, components, df_fmea):
         
         # Evaluasi FMEA triggers dengan logika AND
         triggered_fmea = []
+        
         if df_fmea is not None:
             for row_idx in range(9, 247):  # Baris 10-247 (index 9-246)
                 if row_idx >= len(df_fmea):
                     break
                 
-                related_vars = df_fmea.iloc[row_idx]["Related Variable"]
+                related_vars = df_fmea.iloc[row_idx]["Related Variable(s)"]
                 
                 if pd.isna(related_vars):
                     continue
                 
-                # Parse variabel dari sel
-                cell_str = str(related_vars)
-                lines = [line.strip() for line in cell_str.split('\n') if line.strip()]
+                # Parse variabel dengan multiple separator dan normalisasi
+                lines = parse_related_variables(related_vars)
                 
                 if not lines:
                     continue
                 
-                # Cek apakah semua variabel ada di max_values
-                all_vars_exist = all(var in max_values for var in lines)
-                if not all_vars_exist:
+                # Filter hanya variabel yang ada di self.components dan max_values
+                valid_vars = [var for var in lines if var in components and var in max_values]
+                
+                # Jika tidak ada variabel yang valid, skip FMEA item ini
+                if not valid_vars:
                     continue
                 
-                # Logika AND: SEMUA variabel harus >= alarm untuk trigger
+                # ===== LOGIKA AND YANG BENAR =====
+                # SEMUA variabel yang valid harus >= alarm threshold
                 all_alarm_or_trip = all(
                     is_alarm_or_trip(max_values[var], components[var]) 
-                    for var in lines if var in components
+                    for var in valid_vars
                 )
                 
                 if all_alarm_or_trip:
                     excel_row = row_idx + 10
-                    display_row = excel_row + 9
+                    display_row = excel_row
                     
                     # Ambil RPN untuk sorting
                     rpn_val = None
@@ -238,8 +421,8 @@ def process_input(input_data, components, df_fmea):
                     
                     # Kolom yang ingin ditampilkan
                     columns_to_extract = [
-                        "LEVEL", "Item identification", "Failure mode",
-                        "Related Variable", "RPN", "Recommended Action",
+                        "LEVEL", "Item Identification", "Failure Mode",
+                        "Related Variable(s)", "SEV", "RPN", "Recommended Action",
                         "CAUSE OF CATEGORY", "RECOMMENDATION", "PROCEDURE"
                     ]
                     
@@ -274,7 +457,6 @@ def process_input(input_data, components, df_fmea):
             overall_status = "ALARM"
         else:
             overall_status = "NORMAL"
-        
         
         # Summary
         summary = {
@@ -557,8 +739,3 @@ def prepare_data(config, task):
 
     print(f"data_records_count: {len(df)}")
     return df
-
-def upload_pivision():
-    client = PIWebApiClient(webapi_url, False, 
-                            username=usernme, password=psswrd, verifySsl=False)
-    pass

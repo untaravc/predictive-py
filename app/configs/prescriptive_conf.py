@@ -1,10 +1,11 @@
+from app.configs.base_conf import settings
 def prescriptive_config(unit: str):
     match unit:
         case "1":
             return {
-                "FMEA_PATH" : "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/FMEA1.xlsx",
-                "THRESHOLD_PATH": "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/THRESHOLD.xlsx",
-                "OUTPUT_DIR": "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/",
+                "FMEA_PATH" : settings.BASE_PATH + "storage/prescriptive/FMEA.xlsx",
+                "THRESHOLD_PATH": settings.BASE_PATH + "storage/prescriptive/THRESHOLD.xlsx",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/",
                 "TIMESTAMP_DAYS": 21,
                 "VARIABLE_LIST": [      
                     "SKR1.LO GUIDE BRGOIL TEMP U1",
@@ -35,9 +36,9 @@ def prescriptive_config(unit: str):
             }
         case "2":
             return {
-                "FMEA_PATH" : "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/FMEA2.xlsx",
-                "THRESHOLD_PATH": "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/THRESHOLD.xlsx",
-                "OUTPUT_DIR": "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/",
+                "FMEA_PATH" : settings.BASE_PATH + "storage/prescriptive/FMEA.xlsx",
+                "THRESHOLD_PATH": settings.BASE_PATH + "storage/prescriptive/THRESHOLD.xlsx",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/",
                 "TIMESTAMP_DAYS": 21,
                 "VARIABLE_LIST": [      
                     "SKR2.METAL TEMP 1 U2",
@@ -62,9 +63,9 @@ def prescriptive_config(unit: str):
             }
         case "3":
             return {
-                "FMEA_PATH" : "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/FMEA3.xlsx",
-                "THRESHOLD_PATH": "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/THRESHOLD.xlsx",
-                "OUTPUT_DIR": "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/",
+                "FMEA_PATH" : settings.BASE_PATH + "storage/prescriptive/FMEA.xlsx",
+                "THRESHOLD_PATH": settings.BASE_PATH + "storage/prescriptive/THRESHOLD.xlsx",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/",
                 "TIMESTAMP_DAYS": 21,
                 "VARIABLE_LIST": [      
                     "SKR3.METAL TEMP 1 U3",
@@ -87,9 +88,9 @@ def prescriptive_config(unit: str):
             }
         case "4":
             return {
-                "FMEA_PATH" : "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/FMEA4.xlsx",
-                "THRESHOLD_PATH": "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/THRESHOLD.xlsx",
-                "OUTPUT_DIR": "/Users/macbookpro/Documents/Projects/Pse/code/storage/prescriptive/",
+                "FMEA_PATH" : settings.BASE_PATH + "storage/prescriptive/FMEA.xlsx",
+                "THRESHOLD_PATH": settings.BASE_PATH + "storage/prescriptive/THRESHOLD.xlsx",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/",
                 "TIMESTAMP_DAYS": 21,
                 "VARIABLE_LIST": [      
                     "SKR4.LO GUIDE BRGOIL TEMP U4",
