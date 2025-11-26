@@ -10,6 +10,7 @@ from app.predictions.prescriptive import run_prescriptive
 from app.utils.helper import chunk_list
 from app.predictions.unit1_v1 import run_unit1_lstm_final
 from app.predictions.lgbm import run_lgbm
+from app.utils.logger import write_log
 
 async def execute_record_sample():
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
@@ -26,9 +27,10 @@ async def execute_record_sample():
     return 'Record completed'
 
 async def execute_record_api():
-    print('Start execute_record_api')
+    write_log("execute_record_api", "Start execute_record_api")
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete != 1 AND category = 'record' AND PARAMS > 1000 AND START_AT < SYSDATE FETCH FIRST " + str(settings.RECORD_PER_SESSION) + " ROWS ONLY")
 
+    write_log("execute_record_api", "tasks found: " + str(len(tasks)))
     for task in tasks:
         sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
         startTime = 't-'+ str(settings.RECORD_BACK_DATE) +'d'
@@ -45,17 +47,16 @@ async def execute_record_api():
             endTime = 't-' + str(hari) + 'd'
             interval = '5m'
 
-        print('Start time ' + startTime + ' end time ' + endTime + ' interval ' + interval)
-
         url = settings.INTERPOLATED_URL + sensor["WEB_ID"] + "/interpolated?startTime=" + startTime + "&endTime=" + endTime + "&interval=" + interval
         result = await fetch_data_with_basic_auth(url)
         
         if result['success'] == False:
+            write_log("execute_record_api", "API error: " + url )
             execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
             continue
 
         items = result['result']['Items']
-        print('Result api ' + str(len(items)) + ' items')
+        write_log("execute_record_api", "API result: " + str(len(items)) )
 
         insert_data = []
         for item in items:
@@ -72,7 +73,7 @@ async def execute_record_api():
             })
 
         for i, chunk in enumerate(chunk_list(insert_data, 500), start=1):
-            print(f"Processing batch {i} ({len(chunk)} records)")
+            write_log("execute_record_api", "Processing batch " + str(i) + " (" + str(len(chunk)) + " records)")
             query, params = build_merge_query(settings.TABLE_RECORDS, sensor["ID"], chunk[:-1])
             execute_query(query, params)
 
@@ -84,12 +85,12 @@ async def execute_record_api():
     }
 
 async def execute_predict():
-    print('Start execute_predict')
+    write_log("execute_predict", "Start execute_predict")
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'predict' AND START_AT < SYSDATE FETCH FIRST 1 ROWS ONLY")
-    print('Tasks', len(tasks))
+    write_log("execute_predict", "Tasks found: " + str(len(tasks)))
 
     for task in tasks:
-        print("Generating predict for sensor ", task["PARAMS"])
+        write_log("execute_predict", "Generating predict for unit: " + task["PARAMS"])
         # await run_unit1_lstm_final()
         run_lgbm(task)
         execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
@@ -103,7 +104,7 @@ async def execute_prescriptive():
 
     for task in tasks:
         print("Generating predict for unit: ", task["PARAMS"])
-        return run_prescriptive(task)
+        run_prescriptive(task)
         execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'

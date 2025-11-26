@@ -8,10 +8,12 @@ from app.services.vibration_proccess_service import process_excel
 import os
 import pandas as pd
 import re
+from app.utils.logger import write_log
 
 # Membuat task untuk pemanggilan API Record tiap sensor
 # Membuat task untuk menjalankan model predict
 async def create_task_record():
+    write_log("create_task_record", "Start create task record")
     units = ["1", "2", "3", "4"]
 
     for unit in units:
@@ -30,15 +32,15 @@ async def create_task_record():
             if sensor['NAME'] not in config['INPUT_COLS']:
                 continue
 
-            print("Start sensor ", sensor["ID"])
             timestamps = generate_timestamps(start, end, settings.RECORD_TIME_PERIOD, 0)
             query, params = build_insert_many(timestamps, sensor["ID"], "record")
             execute_query(query, params)
+            write_log("create_task_record", "Create task record " + sensor["NAME"])
 
     return "Success"
 
 async def create_task_predict():
-    print("Service: create_task_predict")
+    write_log("create_task_predict", "Start create task predict")
     now = datetime.now()
 
     if settings.TIME_PRETEND != "":
@@ -46,7 +48,6 @@ async def create_task_predict():
 
     start = now.strftime("%Y-%m-%d 00:00:00")
     end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
-    print("Start predict ", start, end, settings.PREDICT_TIME_PERIOD)
     predict_timestamps = generate_timestamps(start, end, settings.PREDICT_TIME_PERIOD, 0)
 
     for i in range(1, 5):
@@ -83,7 +84,7 @@ def update_vibration():
     return "Success"
 
 def create_task_upload():
-    print("Service: create_task_upload")
+    write_log("create_task_predict", "Start create task upload")
     now = datetime.now()
 
     if settings.TIME_PRETEND != "":
@@ -103,12 +104,13 @@ def create_task_upload():
                 query, params = build_insert_many(timestamps, sensor["ID"], "upload")
 
                 execute_query(query, params)
-                print("Upload task ", sensor["NAME"]) 
+                write_log("create_task_predict", "Create task upload " + sensor["NAME"])
 
     return "Success"
 
 
 def create_task_upload_max():
+    write_log("create_task_predict", "Start create task upload max")
     now = datetime.now()
 
     if settings.TIME_PRETEND != "":
@@ -127,12 +129,12 @@ def create_task_upload_max():
                 query, params = build_insert_many(timestamps, sensor["ID"], "upload_max")
 
                 execute_query(query, params)
-                print("Upload task ", sensor["NAME"]) 
+                write_log("create_task_predict", "Create task upload max " + sensor["NAME"])
 
     return "Success"
 
 def create_task_prescriptive():
-    print("Service: create_task_prescriptive")
+    write_log("create_task_predict", "Start create task prescriptive")
     now = datetime.now()
 
     if settings.TIME_PRETEND != "":
@@ -140,7 +142,6 @@ def create_task_prescriptive():
 
     start = now.strftime("%Y-%m-%d 00:00:00")
     end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
-    print("Start prescriptive ", start, end, settings.PREDICT_TIME_PERIOD)
     predict_timestamps = generate_timestamps(start, end, settings.PREDICT_TIME_PERIOD, 0)
 
     for i in range(1, 5):
@@ -150,7 +151,7 @@ def create_task_prescriptive():
     return "Success"
 
 def task_delete():
-    print("Service: delete_task")
+    write_log("task_delete", "Start task delete")
     execute_query("DELETE FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 1")
 
 def build_insert_many(timestamps, params, category):
