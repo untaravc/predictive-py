@@ -12,29 +12,29 @@ scheduler = AsyncIOScheduler()
 def lifespan(app: FastAPI):
     scheduler.start()
     if settings.RUN_SCHEDULER == "true":
-        if not scheduler.get_job("create_task_record"):
-            scheduler.add_job(
-                create_task_record,
-                CronTrigger.from_crontab(settings.CRON_CREATE_TASK_RECORD),
-                id="create_task_record",
-                replace_existing=True
-            )
+        # if not scheduler.get_job("create_task_record"):
+        #     scheduler.add_job(
+        #         create_task_record,
+        #         CronTrigger.from_crontab(settings.CRON_CREATE_TASK_RECORD),
+        #         id="create_task_record",
+        #         replace_existing=True
+        #     )
 
-        if not scheduler.get_job("create_task_predict"):
-            scheduler.add_job(
-                create_task_predict,
-                CronTrigger.from_crontab(settings.CRON_CREATE_TASK_PREDICT),
-                id="create_task_predict",
-                replace_existing=True
-            )
+        # if not scheduler.get_job("create_task_predict"):
+        #     scheduler.add_job(
+        #         create_task_predict,
+        #         CronTrigger.from_crontab(settings.CRON_CREATE_TASK_PREDICT),
+        #         id="create_task_predict",
+        #         replace_existing=True
+        #     )
 
-        if not scheduler.get_job("create_task_upload"):
-            scheduler.add_job(
-                create_task_upload,
-                CronTrigger.from_crontab(settings.CRON_CREATE_TASK_UPLOAD),
-                id="create_task_upload",
-                replace_existing=True
-            )
+        # if not scheduler.get_job("create_task_upload"):
+        #     scheduler.add_job(
+        #         create_task_upload,
+        #         CronTrigger.from_crontab(settings.CRON_CREATE_TASK_UPLOAD),
+        #         id="create_task_upload",
+        #         replace_existing=True
+        #     )
 
         # EXECUTE TASK ===========================================================
         if not scheduler.get_job("execute_record_api"):
