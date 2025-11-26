@@ -156,7 +156,7 @@ async def execute_upload():
             print(response)
             execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
         except:
-            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
 def getPIWebApiClient(webapi_url, usernme, psswrd):
     client = PIWebApiClient(webapi_url, False, 
@@ -204,7 +204,7 @@ async def execute_upload_prescriptive():
             timestamp = start_time + timedelta(minutes=360 * i)
 
             value1 = PITimedValue()
-            value1.value = preskriptif_sample(task["PARAMS"])
+            value1.value = 0
             value1.timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
 
             values1.append(value1)
@@ -223,23 +223,6 @@ async def execute_upload_prescriptive():
         execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
         # except:
             # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
-
-def preskriptif_sample(id):
-    print("ID:", id)
-    if id == "214867":
-        return 3
-    if id == "214868":
-        print(5)
-        return 4
-    if id == "214869":
-        # return 3
-        return "HIGH PRESSURE LUBRICATING OIL, TURBINE INLET VALVE, HIGH PRESSURE LUBRICATING OIL"
-    if id == "214870":
-        # return 4
-        return "MAT-Wear, MECH-Sticking, EXT-Blockage/plugged"
-    if id == "214871":
-        # return 5
-        return "Restore oil quality/flow, replace worn elements, check filters. Clean, lubricate, protect from debris. Clean/replace filters/strainers, flush lines, set DP alarms."
     
 def execute_upload_max():
     print('Start execute_upload_max')
@@ -261,9 +244,7 @@ def execute_upload_max():
         max_value = fetch_all(query)
 
         if max_value[0]["MAX_VALUE"] == None:
-            # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
-            # print("No max value")
-            # continue
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
             max_value[0]["MAX_VALUE"] = 10
 
         print("URL", settings.OSISOF_URL)
@@ -276,7 +257,7 @@ def execute_upload_max():
             point1 = client.point.get_by_path(path, None)
         except Exception as e:
             print("Point not found:", path, "Error:", e)
-            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id",
+            execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id",
                         {"id": task["ID"]})
             continue
 
