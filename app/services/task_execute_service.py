@@ -245,7 +245,7 @@ def execute_upload_max():
     print('Start execute_upload_max')
     # Run Over TASK
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload_max' AND START_AT < SYSDATE ORDER BY START_AT FETCH FIRST " + str(settings.UPLOAD_MAX_PERSESION) + " ROWS ONLY")
-
+    print('Start execute_upload_max found ', len(tasks))
     for task in tasks:
         sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
         startTime = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")

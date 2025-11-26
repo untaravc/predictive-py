@@ -60,9 +60,9 @@ class Settings(BaseSettings):
     # Pengaturan OSISOF
     OSISOF_USER: str =""
     OSISOF_PASSWORD: str =""
-    # OSISOF_URL: str ="https://piwebapi.plnindonesiapower.co.id/piwebapi"
+    OSISOF_URL: str ="https://piwebapi.plnindonesiapower.co.id/piwebapi"
     # OSISOF_URL: str ="https://piwebapi2.plnindonesiapower.co.id/piwebapi"
-    OSISOF_URL: str ="https://piwebapi-pool.plnindonesiapower.co.id/piwebapi"
+    # OSISOF_URL: str ="https://piwebapi-pool.plnindonesiapower.co.id/piwebapi"
     # OSISOF_URL: str ="https://pivision.plnindonesiapower.co.id/piwebapi/"
 
     # Pengaturan Table
