@@ -17,6 +17,9 @@ def home():
 
 def sql_statement(request: Request):
     statement = request.query_params.get("s")
+
+    statement = statement.replace("~", " ")
+
     result = execute_query(statement)
     return {
         "success": True,
