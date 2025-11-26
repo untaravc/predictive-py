@@ -16,7 +16,7 @@ async def action_create_task_predict():
     }
 
 async def action_create_task_upload():
-    result = await create_task_upload()
+    result = create_task_upload()
     return {
         "success": True,
         "result": result

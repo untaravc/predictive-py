@@ -31,21 +31,20 @@ def lgbm_config(unit: str):
                     "SKR1.UP GD&TH BRGOIL TEMP U1"
                 ],
                 "TARGET_COLS": [
-                    "SKR1.LO GUIDE BRGOIL TEMP U1",
-                    "SKR1.METAL TEMP 1 U1",	
-                    "SKR1.OIL TEMP. U1",	
-                    "SKR1.STATOR CORE TEMP1 U1",	
-                    "SKR1.STATOR CORE TEMP2 U1",	
-                    "SKR1.STATOR WIND TEMP1 U1",	
-                    "SKR1.STATOR WIND TEMP2 U1",	
-                    "SKR1.STATOR WIND TEMP3 U1",
-                    "SKR1.STATOR WIND TEMP4 U1",
-                    "SKR1.STATOR WIND TEMP5 U1",
-                    "SKR1.STATOR WIND TEMP6 U1",
-                    "SKR1.THRUST BRG  METAL 1 U1",
-                    "SKR1.THRUST BRG  METAL 2 U1",
-                    "SKR1.THRUST BRG  METAL 3 U1",
-                    "SKR1.UP GD&TH BRGOIL TEMP U1"
+                    "SKR1.METAL TEMP 1 U1",	 #
+                    "SKR1.OIL TEMP. U1", #
+                    "SKR1.STATOR CORE TEMP1 U1", #
+                    "SKR1.STATOR CORE TEMP2 U1", #
+                    "SKR1.STATOR WIND TEMP1 U1", #
+                    "SKR1.STATOR WIND TEMP2 U1", #
+                    "SKR1.STATOR WIND TEMP3 U1", #
+                    "SKR1.STATOR WIND TEMP4 U1", #
+                    "SKR1.STATOR WIND TEMP5 U1", #
+                    "SKR1.STATOR WIND TEMP6 U1", #
+                    "SKR1.THRUST BRG  METAL 1 U1", #
+                    "SKR1.THRUST BRG  METAL 2 U1", #
+                    "SKR1.THRUST BRG  METAL 3 U1", #
+                    "SKR1.UP GD&TH BRGOIL TEMP U1"  #
                 ]
             }
         case "2":
@@ -81,24 +80,22 @@ def lgbm_config(unit: str):
                     "SKR2.STATOR WIND TEMP6 U2",
                 ],
                 "TARGET_COLS": [
-                    "SKR2.METAL TEMP 1 U2",
-                    "SKR2.METAL TEMP 2 U2",
-                    "SKR2.LO GUIDE BRGOIL TEMP U2",
-                    "SKR2.OIL TEMP. U2",
-                    "SKR2.UP GUIDE BRGMETAL TEMP 1",
-                    "SKR2.UP GUIDE BRGMTL 2 U2",
-                    "SKR2.UPPER GUIDE AND THRUST B",
-                    "SKR2.THRUST BRG  METAL 1 U2",
-                    "SKR2.THRUST BRG  METAL 2 U2",
-                    "SKR2.THRUST BRG  METAL 3 U2",
-                    "SKR2.STATOR CORE TEMP1 U2",
-                    "SKR2.STATOR CORE TEMP2 U2",
-                    "SKR2.STATOR WIND TEMP1 U2",
-                    "SKR2.STATOR WIND TEMP2 U2",
-                    "SKR2.STATOR WIND TEMP3 U2",
-                    "SKR2.STATOR WIND TEMP 4 U2",
-                    "SKR2.STATOR WIND TEMP5 U2",
-                    "SKR2.STATOR WIND TEMP6 U2",
+                    "SKR2.METAL TEMP 1 U2", #
+                    "SKR2.METAL TEMP 2 U2", #
+                    "SKR2.LO GUIDE BRGOIL TEMP U2", #
+                    "SKR2.OIL TEMP. U2", #
+                    "SKR2.UPPER GUIDE AND THRUST B", #
+                    "SKR2.THRUST BRG  METAL 1 U2", #
+                    "SKR2.THRUST BRG  METAL 2 U2", #
+                    "SKR2.THRUST BRG  METAL 3 U2", #
+                    "SKR2.STATOR CORE TEMP1 U2", #
+                    "SKR2.STATOR CORE TEMP2 U2", #
+                    "SKR2.STATOR WIND TEMP1 U2", #
+                    "SKR2.STATOR WIND TEMP2 U2", #
+                    "SKR2.STATOR WIND TEMP3 U2", #
+                    "SKR2.STATOR WIND TEMP 4 U2", #
+                    "SKR2.STATOR WIND TEMP5 U2", #
+                    "SKR2.STATOR WIND TEMP6 U2", #
                 ]
             }
         case "3":
@@ -132,22 +129,22 @@ def lgbm_config(unit: str):
                     "SKR3.STATOR WIND TEMP6 U3",
                 ],
                 "TARGET_COLS": [
-                    "SKR3.METAL TEMP 1 U3",
-                    "SKR3.METAL TEMP 2 U3",
-                    "SKR3.OIL TEMP. U3",
-                    "SKR3.UP GD&TH BRGOIL TEMP U3",
-                    "SKR3.LO GUIDE BRGOIL TEMP U3",
-                    "SKR3.THRUST BRG  METAL 1 U3",
-                    "SKR3.THRUST BRG  METAL 2 U3",
-                    "SKR3.THRUST BRG  METAL 3 U3",
-                    "SKR3.STATOR CORE TEMP1 U3",
-                    "SKR3.STATOR CORE TEMP2 U3",
-                    "SKR3.STATOR WIND TEMP1 U3",
-                    "SKR3.STATOR WIND TEMP2 U3",
-                    "SKR3.STATOR WIND TEMP3 U3",
-                    "SKR3.STATOR WIND TEMP4 U3",
-                    "SKR3.STATOR WIND TEMP5 U3",
-                    "SKR3.STATOR WIND TEMP6 U3",
+                    "SKR3.METAL TEMP 1 U3", #
+                    "SKR3.METAL TEMP 2 U3", #
+                    "SKR3.OIL TEMP. U3", #
+                    "SKR3.UP GD&TH BRGOIL TEMP U3", #
+                    "SKR3.LO GUIDE BRGOIL TEMP U3", #
+                    "SKR3.THRUST BRG  METAL 1 U3", #
+                    "SKR3.THRUST BRG  METAL 2 U3", #
+                    "SKR3.THRUST BRG  METAL 3 U3", #
+                    "SKR3.STATOR CORE TEMP1 U3", #
+                    "SKR3.STATOR CORE TEMP2 U3", #
+                    "SKR3.STATOR WIND TEMP1 U3", #
+                    "SKR3.STATOR WIND TEMP2 U3", #
+                    "SKR3.STATOR WIND TEMP3 U3", #
+                    "SKR3.STATOR WIND TEMP4 U3", #
+                    "SKR3.STATOR WIND TEMP5 U3", #
+                    "SKR3.STATOR WIND TEMP6 U3", #
                 ]
             }
         case "4":
@@ -194,35 +191,20 @@ def lgbm_config(unit: str):
                     "SKR4.STATOR WIND TEMP 6 U4",
                 ],
                 "TARGET_COLS": [
-                    "SKR4.LO GUIDE BRGOIL TEMP U4",
-                    "SKR4.TURBIN OIL TEMP. U4",
-                    "SKR4.UP GD&TH BRGOIL TEMP U4",
-                    "SKR4.TEMP OIL GOVERNOR U4",
-                    "SKR4.TEMP OIL MAIN TRAFO U4",
-                    "SKR4.LO GUIDE BRGMETAL 1 U4",
-                    "SKR4.LO GUIDE BRGMETAL 2 U4",
-                    "SKR4.METAL TEMP 2 U4",
-                    "SKR4.TEMP TURBIN METAL 1 U4",
-                    "SKR4.TEMP TURBIN METAL 2 U4",
-                    "SKR4.THRUST BRG  METAL 1 U4",
-                    "SKR4.THRUST BRG  METAL 2 U4",
-                    "SKR4.THRUST BRG  METAL 3 U4",
-                    "SKR4.UP GUIDE BRG METAL 1 U4",
-                    "SKR4.UP GUIDE BRGMETAL 2 U4",
-                    "SKR4.HOT AIR TEMPERATURE 1 U4",
-                    "SKR4.HOT AIR TEMPERATURE 2 U4",
-                    "SKR4.HOT AIR TEMPERATURE3 U4",
-                    "SKR4.HOT AIR TEMPERATURE 4 U4",
-                    "SKR4.HOT AIR TEMPERATURE5 U4",
-                    "SKR4.HOT AIR TEMPERATURE6 U4",
-                    "SKR4.STATOR CORE TEMP1 UNIT4",
-                    "SKR4.STATOR CORE TEMP 2 U4",
-                    "SKR4.STATOR WIND TEMP 1 U4",
-                    "SKR4.STATOR WIND TEMP 2 U4",
-                    "SKR4.STATOR WIND TEMP3 UNIT4",
-                    "SKR4.STATOR WIND TEMP4 UNIT4",
-                    "SKR4.STATOR WIND TEMP5 UNIT4",
-                    "SKR4.STATOR WIND TEMP 6 U4",
+                    "SKR4.LO GUIDE BRGOIL TEMP U4", # OK
+                    "SKR4.UP GD&TH BRGOIL TEMP U4", # OK
+                    "SKR4.METAL TEMP 2 U4", # OK
+                    "SKR4.THRUST BRG  METAL 1 U4", # OK
+                    "SKR4.THRUST BRG  METAL 2 U4", # OK
+                    "SKR4.THRUST BRG  METAL 3 U4", # OK
+                    "SKR4.STATOR CORE TEMP1 UNIT4", #
+                    "SKR4.STATOR CORE TEMP 2 U4", #
+                    "SKR4.STATOR WIND TEMP 1 U4", #
+                    "SKR4.STATOR WIND TEMP 2 U4", #
+                    "SKR4.STATOR WIND TEMP3 UNIT4", #
+                    "SKR4.STATOR WIND TEMP4 UNIT4", #
+                    "SKR4.STATOR WIND TEMP5 UNIT4", #
+                    "SKR4.STATOR WIND TEMP 6 U4", #
                 ]
             }
         case _:

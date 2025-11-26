@@ -103,7 +103,7 @@ def create_task_upload():
                 query, params = build_insert_many(timestamps, sensor["ID"], "upload")
 
                 execute_query(query, params)
-                print("Upload task ", sensor["ID"]) 
+                print("Upload task ", sensor["NAME"]) 
 
     return "Success"
 

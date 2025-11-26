@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     # Dilakukan tiap jam maka dimasukan nilai 60
     RECORD_TIME_PERIOD: int = 720
     PREDICT_TIME_PERIOD: int = 720
-    UPLOAD_TIME_PERIOD: int = 720
+    UPLOAD_TIME_PERIOD: int = 2880
 
     # 1.b Membuat task untuk menjalankan model predict
     # 1.c Membuat task untuk menjalankan upload data prediksi ke PI Vision

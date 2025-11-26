@@ -143,7 +143,6 @@ async def execute_upload():
             value1.value = predictions[i]["VALUE"]
             value1.timestamp = predictions[i]["RECORD_TIME"].strftime("%Y-%m-%dT%H:%M:%SZ")
             values1.append(value1)
-            print("Value: ", value1.value, " Timestamp: ", value1.timestamp)
 
         print("Sensor Name: ", sensor['NAME'], "| Prediction data: ", total_data, "| Items ",len(values1))
         streamValue1.items = values1
