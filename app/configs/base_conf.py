@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 import os
 class Settings(BaseSettings):
+    APP_MODE: str = "DEV"
     # Mengaktifkan fungsi scheduler
     RUN_SCHEDULER: str = "true"
     # Memisalkan saat ini adalah "2025-09-01 00:00:00". Fungsi akan mengambil record berdasarkan nilai ini kebelakang.

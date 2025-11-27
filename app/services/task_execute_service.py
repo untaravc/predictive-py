@@ -10,7 +10,7 @@ from app.predictions.prescriptive import run_prescriptive
 from app.utils.helper import chunk_list
 from app.predictions.unit1_v1 import run_unit1_lstm_final
 from app.predictions.lgbm import run_lgbm
-from app.utils.logger import write_log
+from app.utils.logger import write_log, gen_key
 
 async def execute_record_sample():
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
@@ -110,7 +110,8 @@ async def execute_prescriptive():
     return 'Predict completed'
 
 async def execute_upload():
-    print('Start execute_upload')
+    log_key = gen_key()
+    write_log("execute_upload", "Start execute_upload", log_key)
     # Run Over TASK
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload' AND START_AT < SYSDATE ORDER BY START_AT FETCH FIRST " + str(settings.UPLOAD_PERSESION) + " ROWS ONLY")
 
@@ -118,7 +119,7 @@ async def execute_upload():
         sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
         startTime = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
         endTime = (task["START_AT"] + timedelta(days=settings.UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
-        print("Start time ", startTime, " end time ", endTime)
+        write_log("execute_upload","Start time " + startTime + " end time " + endTime, log_key)
         predictions = fetch_all("SELECT * FROM "+ settings.TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS') AND RECORD_TIME <= TO_DATE('" + endTime + "', 'YYYY-MM-DD HH24:MI:SS')")
         
         client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
@@ -128,11 +129,11 @@ async def execute_upload():
             path = f"\\\\PI1\{sensor['NAME']}.prediksi"
             point1 = client.point.get_by_path(path, None)
         except:
-            print("Point not found")
+            write_log("execute_upload","Point not found", log_key)
             execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
             continue
 
-        print("Web ID Found:",point1.web_id)
+        write_log("execute_upload","Web ID Found: " + str(point1.web_id), log_key)
 
         streamValue1 = PIStreamValues()
         
@@ -145,7 +146,7 @@ async def execute_upload():
             value1.timestamp = predictions[i]["RECORD_TIME"].strftime("%Y-%m-%dT%H:%M:%SZ")
             values1.append(value1)
 
-        print("Sensor Name: ", sensor['NAME'], "| Prediction data: ", total_data, "| Items ",len(values1))
+        write_log("execute_upload","Sensor Name: " + sensor['NAME'] + " | Prediction data: " + str(total_data) + " | Items " + str(len(values1)), log_key)
         streamValue1.items = values1
 
         streamValues = list()
@@ -164,7 +165,7 @@ def getPIWebApiClient(webapi_url, usernme, psswrd):
     return client 
 
 async def execute_upload_prescriptive():
-    print('Start execute_upload')
+    print('Start execute_upload_prescriptive')
     # Run Over TASK
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload' AND START_AT < SYSDATE ORDER BY START_AT FETCH FIRST " + str(settings.UPLOAD_PERSESION) + " ROWS ONLY")
 
@@ -225,15 +226,16 @@ async def execute_upload_prescriptive():
             # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 3, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
     
 def execute_upload_max():
-    print('Start execute_upload_max')
+    log_key = gen_key()
+    write_log("execute_upload_max", "Start execute_upload_max", log_key)
     # Run Over TASK
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload_max' AND START_AT < SYSDATE ORDER BY START_AT FETCH FIRST " + str(settings.UPLOAD_MAX_PERSESION) + " ROWS ONLY")
-    print('Start execute_upload_max found ', len(tasks))
+    write_log("execute_upload_max", "Total task: " + str(len(tasks)), log_key)
     for task in tasks:
         sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
         startTime = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
         endTime = (task["START_AT"] + timedelta(days=settings.UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
-        print("Start time ", startTime, " end time ", endTime)
+        write_log("execute_upload_max","Start time " + startTime + " end time " + endTime, log_key)
         query = (
             "SELECT MAX(VALUE) AS max_value FROM " + settings.TABLE_PREDICTIONS +
             " WHERE SENSOR_ID = " + str(sensor["ID"]) +
@@ -247,7 +249,7 @@ def execute_upload_max():
             execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
             max_value[0]["MAX_VALUE"] = 10
 
-        print("URL", settings.OSISOF_URL)
+        write_log("execute_upload_max","Max value: " + str(max_value[0]["MAX_VALUE"]), log_key)
         client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -256,12 +258,12 @@ def execute_upload_max():
         try:
             point1 = client.point.get_by_path(path, None)
         except Exception as e:
-            print("Point not found:", path, "Error:", e)
+            write_log("execute_upload_max", "Point not found", log_key)
             execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id",
                         {"id": task["ID"]})
             continue
 
-        print("Web ID Found:",point1.web_id)
+        write_log("execute_upload_max","Web ID Found: " + str(point1.web_id), log_key)
 
         streamValue1 = PIStreamValues()
         
@@ -283,7 +285,7 @@ def execute_upload_max():
 
             values1.append(value1)
 
-        print("Sensor Name: ", sensor['NAME'], "| Prediction data: ", total_data, "| Items ",len(values1))
+        write_log("execute_upload_max","Sensor Name: " + sensor['NAME'] + " | Prediction data: " + str(total_data) + " | Items " + str(len(values1)), log_key)
         streamValue1.items = values1
 
         streamValues = list()
