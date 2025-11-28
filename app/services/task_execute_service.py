@@ -11,6 +11,7 @@ from app.utils.helper import chunk_list
 from app.predictions.unit1_v1 import run_unit1_lstm_final
 from app.predictions.lgbm import run_lgbm
 from app.utils.logger import write_log, gen_key
+from app.utils.pi_vision import getPIWebApiClient
 
 async def execute_record_sample():
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
@@ -104,8 +105,8 @@ async def execute_prescriptive():
 
     for task in tasks:
         print("Generating predict for unit: ", task["PARAMS"])
-        run_prescriptive(task)
-        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        return run_prescriptive(task)
+        # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
 
@@ -122,7 +123,7 @@ async def execute_upload():
         write_log("execute_upload","Start time " + startTime + " end time " + endTime, log_key)
         predictions = fetch_all("SELECT * FROM "+ settings.TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS') AND RECORD_TIME <= TO_DATE('" + endTime + "', 'YYYY-MM-DD HH24:MI:SS')")
         
-        client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
+        client = getPIWebApiClient()
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         try:
@@ -159,11 +160,6 @@ async def execute_upload():
         except:
             execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
-def getPIWebApiClient(webapi_url, usernme, psswrd):
-    client = PIWebApiClient(webapi_url, False, 
-                            username=usernme, password=psswrd, verifySsl=False)
-    return client 
-
 async def execute_upload_prescriptive():
     print('Start execute_upload_prescriptive')
     # Run Over TASK
@@ -176,7 +172,7 @@ async def execute_upload_prescriptive():
         print("Start time ", startTime, " end time ", endTime)
         predictions = fetch_all("SELECT * FROM "+ settings.TABLE_PREDICTIONS +" WHERE SENSOR_ID = "  + str(sensor["ID"]) + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS') AND RECORD_TIME <= TO_DATE('" + endTime + "', 'YYYY-MM-DD HH24:MI:SS')")
         
-        client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
+        client = getPIWebApiClient()
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         try:
@@ -250,7 +246,7 @@ def execute_upload_max():
             max_value[0]["MAX_VALUE"] = 10
 
         write_log("execute_upload_max","Max value: " + str(max_value[0]["MAX_VALUE"]), log_key)
-        client = getPIWebApiClient(settings.OSISOF_URL, settings.OSISOF_USER, settings.OSISOF_PASSWORD)
+        client = getPIWebApiClient()
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         path = f"\\\\PI1\{sensor['NAME']}.prediksi.max"
@@ -265,7 +261,7 @@ def execute_upload_max():
 
         write_log("execute_upload_max","Web ID Found: " + str(point1.web_id), log_key)
 
-        streamValue1 = PIStreamValues()
+        streamValue1 = PIStreamValues() 
         
         total_data = 4 * 7
         now = datetime.now()

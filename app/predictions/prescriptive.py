@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from osisoft.pidevclub.piwebapi.pi_web_api_client import PIWebApiClient
 from osisoft.pidevclub.piwebapi.models import PIAnalysis, PIItemsStreamValues, PIStreamValues, PITimedValue, PIRequest
 warnings.filterwarnings('ignore')
+from app.utils.pi_vision import getPIWebApiClient
 
 def run_prescriptive(task):
     config = prescriptive_config(task['PARAMS'])
@@ -31,57 +32,88 @@ def run_prescriptive(task):
     df_fmea = load_excel_data(unit, excel_path)
     
     variable_list = load_variables_from_file(df_fmea, output_dir)
-
-    print(variable_list)
     
-    load_threshold_data(unit, threshold_file, variable_list, components)
-
-    print("\n" + "="*80)
-    print("EXTRACTED VARIABLES:")
-    print("="*80)
-    for idx, var in enumerate(variable_list, 1):
-        print(f"{idx}. {var}")
-    print(f"\nTotal: {len(variable_list)} variables")
-
+    components = load_threshold_data(unit, threshold_file, variable_list, components)
     items = prepare_data(config, task)
+
     item_filterd = []
     for item in items:
         if item["NAME"] in config["VARIABLE_LIST"]:
             item_filterd.append(item)
 
     input = {item["NAME"]: [item["MAX_VALUE"]] for item in item_filterd}
-    # print(input)
+    # return input
 
     result = process_input(input, components, df_fmea)
+    upload = {}
+    
+    upload[f"{config["SENSOR_NAME_QUERY"]}. TRIP"] = result["summary"]["trip_count"]
+    upload[f"{config["SENSOR_NAME_QUERY"]}. ALARM"] = result["summary"]["alarm_count"]
 
-    upload_trip = result["summary"]["trip_count"]
-    upload_alarm = result["summary"]["alarm_count"]
+    for i, row in enumerate(result["triggered_fmea"].itertuples(index=False)):
+        if i == 3:    # stop after 3 rows
+            break
 
-    upload_failure_mode_1 = ""
-    upload_item_identification_1 = ""
-    upload_level_1 = ""
-    upload_procedure_1 = ""
-    upload_recommendation_1 = ""
+        upload[f"{config["SENSOR_NAME_QUERY"]}. FAILURE MODE {i+1}"] = row.FAILURE_MODE
+        upload[f"{config["SENSOR_NAME_QUERY"]}. ITEM IDENTIFIACTION {i+1}"] = row.ITEM_IDENTIFICATION
+        upload[f"{config["SENSOR_NAME_QUERY"]}. LEVEL {i+1}"] = row.LEVEL
+        upload[f"{config["SENSOR_NAME_QUERY"]}. PROCEDURE {i+1}"] = row.PROCEDURE
+        upload[f"{config["SENSOR_NAME_QUERY"]}. RECOMMENDATIONS {i+1}"] = row.RECOMMENDATION
 
-    upload_failure_mode_2 = ""
-    upload_item_identification_2 = ""
-    upload_level_2 = ""
-    upload_procedure_2 = ""
-    upload_recommendation_2 = ""
-
-    upload_failure_mode_3 = ""
-    upload_item_identification_3 = ""
-    upload_level_3 = ""
-    upload_procedure_3 = ""
-    upload_recommendation_3 = ""
-
-    save_to_excel(result, config["OUTPUT_DIR"], filename=f"monitoring_report_{task['ID']}.xlsx")
-    print("TRIGGEREDS: ", len(result["triggered_fmea"]))
-
-    # save_to_excel(result, config["OUTPUT_DIR"])
+    save_to_excel(result, config["OUTPUT_DIR"]) 
     print("Prediction completed successfully.")
 
-    return "OKE"
+    return upload_pi_vision(config, task, upload)
+
+def upload_pi_vision(config, task, uploads):
+
+    # get id from name
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like '"+config['SENSOR_NAME_QUERY']+"%'")
+    
+    prescriptive_sensors = []
+    for sensor in sensors:
+        if sensor['NAME'] in config['RESULT_TAG']:
+            prescriptive_sensors.append(sensor)
+
+
+    # client = getPIWebApiClient()
+    total_data = 24 * 7
+
+    streamValues = list()
+    for sensor in prescriptive_sensors:
+        streamValue1 = PIStreamValues()
+        streamValue1.web_id = sensor['WEB_ID']
+
+        upload_value = ""
+        try:
+            upload_value = uploads[sensor['NAME']]
+        except:
+            upload_value = 0
+
+        if isinstance(upload_value, str):
+            if len(upload_value) > 500:
+                upload_value = upload_value[:500] + "..."
+
+        values1 = list()
+        base_time = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=7)
+        for i in range(total_data):
+            value1 = PITimedValue()
+            value1.value = upload_value
+            timestamp = base_time + timedelta(minutes=60 * i)
+            value1.timestamp = timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+            values1.append(value1)
+
+
+        streamValue1.items = values1
+        streamValues.append(streamValue1)
+
+    client = getPIWebApiClient()
+    response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
+
+    return response
+
+def map_name(name, config):
+    return config['SENSOR_NAME_QUERY'] + ". " +name
 
 def load_variables_from_file(df_fmea, output_dir):
         """
@@ -226,9 +258,7 @@ def load_threshold_data(unit, threshold_file, variable_list, components):
     try:
         # Tentukan sheet name berdasarkan unit
         sheet_name = f"Threshold {unit}"
-        
-        print(f"Loading threshold from sheet: {sheet_name}")
-        
+                
         # Baca file threshold dengan sheet yang sesuai
         df_threshold = pd.read_excel(threshold_file, sheet_name=sheet_name)
         
@@ -259,9 +289,10 @@ def load_threshold_data(unit, threshold_file, variable_list, components):
                 }
             else:
                 # Variabel tidak ada di threshold file, gunakan default
-                print(f"⚠️  Variabel '{var_name}' tidak ditemukan di threshold. Menggunakan default.")
+                # print(f"⚠️  Variabel '{var_name}' tidak ditemukan di threshold. Menggunakan default.")
                 components[var_name] = default_config.copy()
-                
+        
+        return components
     except FileNotFoundError:
         print(f"❌ Sheet '{sheet_name}' tidak ditemukan di file threshold")
         # Set default values jika ada error
@@ -271,6 +302,7 @@ def load_threshold_data(unit, threshold_file, variable_list, components):
                 "alarm": 65,
                 "trip": 80
             }
+        return components
     except Exception as e:
         print(f"❌ Error loading threshold data: {str(e)}")
         # Set default values jika ada error
@@ -280,6 +312,7 @@ def load_threshold_data(unit, threshold_file, variable_list, components):
                 "alarm": 65,
                 "trip": 80
             }
+        return components
     
 def load_excel_data(unit, excel_path):
     """Load data dari Excel FMEA sesuai dengan unit yang dipilih"""
@@ -421,9 +454,9 @@ def process_input(input_data, components, df_fmea):
                     
                     # Kolom yang ingin ditampilkan
                     columns_to_extract = [
-                        "LEVEL", "Item Identification", "Failure Mode",
-                        "Related Variable(s)", "SEV", "RPN", "Recommended Action",
-                        "CAUSE OF CATEGORY", "RECOMMENDATION", "PROCEDURE"
+                        "LEVEL", "ITEM_IDENTIFICATION", "FAILURE_MODE",
+                        "RELATED_VARIABLE", "SEV", "RPN", "RECOMMENDED_ACTION",
+                        "CAUSE_OF_CATEGORY", "RECOMMENDATION", "PROCEDURE"
                     ]
                     
                     fmea_item = {
@@ -440,6 +473,8 @@ def process_input(input_data, components, df_fmea):
                             fmea_item[col] = "No Information"
                     
                     triggered_fmea.append(fmea_item)
+        else:
+            print("No FMEA data available.")
         
         # Sort triggered FMEA by RPN (descending)
         triggered_fmea.sort(key=lambda x: x["RPN_Numeric"], reverse=True)
@@ -737,5 +772,10 @@ def prepare_data(config, task):
     params = {"date_from": date_from, "date_to": date_to}
     df = fetch_all(sql, params)
 
-    print(f"data_records_count: {len(df)}")
-    return df
+    use_data = []
+    for row in df:
+        if row["NAME"] in config["VARIABLE_LIST"]:
+            use_data.append(row)
+
+    print(f"data_records_count: {len(use_data)}")
+    return use_data

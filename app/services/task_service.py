@@ -108,6 +108,31 @@ def create_task_upload():
 
     return "Success"
 
+def create_task_upload():
+    write_log("create_task_predict", "Start create task upload")
+    now = datetime.now()
+
+    if settings.TIME_PRETEND != "":
+        now = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
+
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like +'SKR%'")
+    start = now.strftime("%Y-%m-%d 00:00:00")
+    end = (now + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
+
+    units = ["1", "2", "3", "4"]
+
+    for unit in units:
+        config = lgbm_config(unit)
+        for sensor in sensors:
+            if sensor['NAME'] in config['TARGET_COLS']:
+                timestamps = generate_timestamps(start, end, settings.UPLOAD_TIME_PERIOD, 0)
+                query, params = build_insert_many(timestamps, sensor["ID"], "upload")
+
+                execute_query(query, params)
+                write_log("create_task_predict", "Create task upload " + sensor["NAME"])
+
+    return "Success"
+
 
 def create_task_upload_max():
     write_log("create_task_predict", "Start create task upload max")

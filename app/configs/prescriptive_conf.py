@@ -5,8 +5,9 @@ def prescriptive_config(unit: str):
             return {
                 "FMEA_PATH" : settings.BASE_PATH + "storage/prescriptive/FMEA.xlsx",
                 "THRESHOLD_PATH": settings.BASE_PATH + "storage/prescriptive/THRESHOLD.xlsx",
-                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/result",
                 "TIMESTAMP_DAYS": 21,
+                "SENSOR_NAME_QUERY": "SKR1",
                 "VARIABLE_LIST": [      
                     "SKR1.LO GUIDE BRGOIL TEMP U1",
                     "SKR1.METAL TEMP 1 U1",
@@ -32,14 +33,34 @@ def prescriptive_config(unit: str):
                     "SKR1.TURBIN VIBRASI HORIZONTAL",
                     "SKR1.TURBIN VIBRASI VERTIKAL",
                     "SKR1.TURBIN VIBRASI AXIAL"
+                ],
+                "RESULT_TAG": [
+                    "SKR1. TRIP",
+                    "SKR1. ALARM",
+                    "SKR1. FAILURE MODE 1",
+                    "SKR1. FAILURE MODE 2",
+                    "SKR1. FAILURE MODE 3",
+                    "SKR1. ITEM IDENTIFIACTION 1",
+                    "SKR1. ITEM IDENTIFIACTION 2",
+                    "SKR1. ITEM IDENTIFIACTION 3",
+                    "SKR1. LEVEL 1",
+                    "SKR1. LEVEL 2",
+                    "SKR1. LEVEL 3",
+                    "SKR1. PROCEDURE 1",
+                    "SKR1. PROCEDURE 2",
+                    "SKR1. PROCEDURE 3",
+                    "SKR1. RECOMMENDATIONS 1",
+                    "SKR1. RECOMMENDATIONS 2",
+                    "SKR1. RECOMMENDATIONS 3",
                 ]
             }
         case "2":
             return {
                 "FMEA_PATH" : settings.BASE_PATH + "storage/prescriptive/FMEA.xlsx",
                 "THRESHOLD_PATH": settings.BASE_PATH + "storage/prescriptive/THRESHOLD.xlsx",
-                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/result",
                 "TIMESTAMP_DAYS": 21,
+                "SENSOR_NAME_QUERY": "SKR2",
                 "VARIABLE_LIST": [      
                     "SKR2.METAL TEMP 1 U2",
                     "SKR2.METAL TEMP 2 U2",
@@ -59,14 +80,34 @@ def prescriptive_config(unit: str):
                     "SKR2.STATOR WIND TEMP 4 U2",
                     "SKR2.STATOR WIND TEMP5 U2",
                     "SKR2.STATOR WIND TEMP6 U2",
+                ],
+                "RESULT_TAG": [
+                    "SKR2. TRIP",
+                    "SKR2. ALARM",
+                    "SKR2. FAILURE MODE 1",
+                    "SKR2. FAILURE MODE 2",
+                    "SKR2. FAILURE MODE 3",
+                    "SKR2. ITEM IDENTIFIACTION 1",
+                    "SKR2. ITEM IDENTIFIACTION 2",
+                    "SKR2. ITEM IDENTIFIACTION 3",
+                    "SKR2. LEVEL 1",
+                    "SKR2. LEVEL 2",
+                    "SKR2. LEVEL 3",
+                    "SKR2. PROCEDURE 1",
+                    "SKR2. PROCEDURE 2",
+                    "SKR2. PROCEDURE 3",
+                    "SKR2. RECOMMENDATIONS 1",
+                    "SKR2. RECOMMENDATIONS 2",
+                    "SKR2. RECOMMENDATIONS 3",
                 ]
             }
         case "3":
             return {
                 "FMEA_PATH" : settings.BASE_PATH + "storage/prescriptive/FMEA.xlsx",
                 "THRESHOLD_PATH": settings.BASE_PATH + "storage/prescriptive/THRESHOLD.xlsx",
-                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/result",
                 "TIMESTAMP_DAYS": 21,
+                "SENSOR_NAME_QUERY": "SKR3",
                 "VARIABLE_LIST": [      
                     "SKR3.METAL TEMP 1 U3",
                     "SKR3.METAL TEMP 2 U3",
@@ -84,14 +125,34 @@ def prescriptive_config(unit: str):
                     "SKR3.STATOR WIND TEMP4 U3",
                     "SKR3.STATOR WIND TEMP5 U3",
                     "SKR3.STATOR WIND TEMP6 U3",
+                ],
+                "RESULT_TAG": [
+                    "SKR3. TRIP",
+                    "SKR3. ALARM",
+                    "SKR3. FAILURE MODE 1",
+                    "SKR3. FAILURE MODE 2",
+                    "SKR3. FAILURE MODE 3",
+                    "SKR3. ITEM IDENTIFIACTION 1",
+                    "SKR3. ITEM IDENTIFIACTION 2",
+                    "SKR3. ITEM IDENTIFIACTION 3",
+                    "SKR3. LEVEL 1",
+                    "SKR3. LEVEL 2",
+                    "SKR3. LEVEL 3",
+                    "SKR3. PROCEDURE 1",
+                    "SKR3. PROCEDURE 2",
+                    "SKR3. PROCEDURE 3",
+                    "SKR3. RECOMMENDATIONS 1",
+                    "SKR3. RECOMMENDATIONS 2",
+                    "SKR3. RECOMMENDATIONS 3",
                 ]
             }
         case "4":
             return {
                 "FMEA_PATH" : settings.BASE_PATH + "storage/prescriptive/FMEA.xlsx",
                 "THRESHOLD_PATH": settings.BASE_PATH + "storage/prescriptive/THRESHOLD.xlsx",
-                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/",
+                "OUTPUT_DIR": settings.BASE_PATH + "storage/prescriptive/result",
                 "TIMESTAMP_DAYS": 21,
+                "SENSOR_NAME_QUERY": "SKR4",
                 "VARIABLE_LIST": [      
                     "SKR4.LO GUIDE BRGOIL TEMP U4",
                     "SKR4.TURBIN OIL TEMP. U4",
@@ -122,5 +183,24 @@ def prescriptive_config(unit: str):
                     "SKR4.STATOR WIND TEMP4 UNIT4",
                     "SKR4.STATOR WIND TEMP5 UNIT4",
                     "SKR4.STATOR WIND TEMP 6 U4",
+                ],
+                "RESULT_TAG": [
+                    "SKR4. TRIP",
+                    "SKR4. ALARM",
+                    "SKR4. FAILURE MODE 1",
+                    "SKR4. FAILURE MODE 2",
+                    "SKR4. FAILURE MODE 3",
+                    "SKR4. ITEM IDENTIFIACTION 1",
+                    "SKR4. ITEM IDENTIFIACTION 2",
+                    "SKR4. ITEM IDENTIFIACTION 3",
+                    "SKR4. LEVEL 1",
+                    "SKR4. LEVEL 2",
+                    "SKR4. LEVEL 3",
+                    "SKR4. PROCEDURE 1",
+                    "SKR4. PROCEDURE 2",
+                    "SKR4. PROCEDURE 3",
+                    "SKR4. RECOMMENDATIONS 1",
+                    "SKR4. RECOMMENDATIONS 2",
+                    "SKR4. RECOMMENDATIONS 3",
                 ]
             }
