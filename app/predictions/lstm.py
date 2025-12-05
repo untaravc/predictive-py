@@ -7,20 +7,21 @@ import os
 # from app.configs.oracle_conf import TABLE_SENSORS, TABLE_PREDICTIONS, TABLE_RECORDS
 from app.utils.oracle_db import fetch_all, execute_query
 from app.services.generator_service import build_merge_query
-from app.configs.lstm_conf import lstm_config
 from datetime import datetime, timedelta, timezone
 from app.utils.helper import chunk_list
 from app.configs.base_conf import settings
+from app.configs.unit_config import unit_config
 
 # --- Konfigurasi ---
 
-async def run_unit1_lstm_final():
+def run_lstm(task):
     version = datetime.now().strftime("%Y%m%d%H%M%S")
+    config = unit_config(task['PARAMS'])
 # --- 1. Load Model dan Scaler ---
     # Load model. `compile=False` mempercepat loading karena kita tidak akan training lagi.
-    model = tf.keras.models.load_model(settings.MODEL_PATH, compile=False)
-    scaler_X = joblib.load(settings.SCALER_X_PATH)
-    scaler_y = joblib.load(settings.SCALER_Y_PATH)
+    model = tf.keras.models.load_model(config['LSTM_MODEL_PATH'], compile=False)
+    scaler_X = joblib.load(config['LSTM_SCALER_X_PATH'])
+    scaler_y = joblib.load(config['LSTM_SCALER_Y_PATH'])
     print("Model and scalers loaded successfully. [1]")
 
     # --- 2. Siapkan Data Input untuk Prediksi ---
@@ -28,22 +29,21 @@ async def run_unit1_lstm_final():
     # Untuk contoh ini, kita akan menggunakan 100 baris terakhir dari data training asli
     # sebagai input untuk memprediksi 25 periode ke depan.
     # GANTI BAGIAN INI DENGAN DATA ASLI ANDA
-    df = await prepare_data_input(settings.PREPARE_DATA)
-    df.to_csv(os.path.join(settings.OUTPUT_DIR, "Dataset_"+ version +".csv"))
+    df = prepare_data_input(config, task)
+    os.makedirs(config['LSTM_OUTPUT_DIR'], exist_ok=True)
+    df.to_csv(os.path.join(config['LSTM_OUTPUT_DIR'], "Dataset_"+ version +".csv"))
 
-    return 'ok'
-
-    # df = df.sort_index()
-    # df.replace('I/O Timeout', np.nan, inplace=True)
-    # for col in df.columns:
-    #     df[col] = pd.to_numeric(df[col], errors='coerce')
-    # df = df.interpolate(method="time", limit_direction="both").ffill().bfill()
+    df = df.sort_index()
+    df.replace('I/O Timeout', np.nan, inplace=True)
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    df = df.interpolate(method="time", limit_direction="both").ffill().bfill()
 
     # Ambil 100 baris data terakhir (sesuai TIMESTEPS)
-    if len(df) < settings.TIMESTEPS:
-        raise ValueError(f"Data tidak cukup. Butuh minimal {settings.TIMESTEPS} baris, tapi hanya ada {len(df)}.")
+    if len(df) < config["LSTM_TIMESTEPS"]:
+        raise ValueError(f"Data tidak cukup. Butuh minimal {config["LSTM_TIMESTEPS"]} baris, tapi hanya ada {len(df)}.")
 
-    last_window_df = df[UNIT1_INPUT_COLS].iloc[-settings.TIMESTEPS:]
+    last_window_df = df[config['LSTM_INPUT_COLS']].iloc[-config["LSTM_TIMESTEPS"]:]
     print(f"Menggunakan data dari {last_window_df.index.min()} hingga {last_window_df.index.max()} untuk prediksi.")
 
     # --- 3. Normalisasi dan Reshape Input ---
@@ -55,7 +55,7 @@ async def run_unit1_lstm_final():
 
     input_for_model = np.expand_dims(last_window_scaled, axis=0)
     print("Input shape for model:", input_for_model.shape)
-    print("Input shape should be model: 1," + str(settings.TIMESTEPS) + "," + str(len(UNIT1_INPUT_COLS)))
+    print("Input shape should be model: 1," + str(config["LSTM_TIMESTEPS"]) + "," + str(len(config['LSTM_INPUT_COLS'])))
 
     # # --- 4. Lakukan Prediksi ---
     # print("Making prediction...")
@@ -64,8 +64,8 @@ async def run_unit1_lstm_final():
     # --- 5. Post-processing Hasil Prediksi ---
     # Hasil prediksi masih dalam bentuk flat (1, HORIZON * n_targets) dan ternormalisasi
     # Reshape hasil prediksi menjadi (HORIZON, n_targets)
-    n_targets = len(UNIT1_TARGET_COLS)
-    prediction_scaled = prediction_scaled_flat.reshape(settings.HORIZON, n_targets)
+    n_targets = len(config['LSTM_TARGET_COLS'])
+    prediction_scaled = prediction_scaled_flat.reshape(config['LSTM_HORIZON'], n_targets)
 
     # Kembalikan hasil prediksi ke skala aslinya MENGGUNAKAN SCALER_Y
     prediction_original_scale = scaler_y.inverse_transform(prediction_scaled)
@@ -75,14 +75,14 @@ async def run_unit1_lstm_final():
     # Asumsikan frekuensi data adalah 5 menit ("5T")
     forecast_timestamps = pd.date_range(start=last_timestamp, periods=settings.HORIZON + 1, freq="5min")[1:]
 
-    forecast_df = pd.DataFrame(prediction_original_scale, index=forecast_timestamps, columns=UNIT1_TARGET_COLS)
+    forecast_df = pd.DataFrame(prediction_original_scale, index=forecast_timestamps, columns=config['LSTM_INPUT_COLS'])
 
     forecast_df_corrected = forecast_df 
     try:
         # 1. Hitung Rata-rata Nilai Input (hanya untuk kolom target)
         # Kita ambil rata-rata dari data historis yang digunakan untuk prediksi
         # Asumsi: TARGET_COLS adalah subset dari INPUT_COLS
-        input_means = last_window_df[UNIT1_TARGET_COLS].mean()
+        input_means = last_window_df[config['LSTM_TARGET_COLS']].mean()
         print("Rata-rata input historis (per kolom):")
         print(input_means.head())
 
@@ -123,21 +123,21 @@ async def run_unit1_lstm_final():
     # Convert to list of dicts
     result = long_df.to_dict(orient="records")
 
-    insert_update_db(result)
+    insert_update_db(result, config)
 
     return {
         "status": "success",
     }
 
-def insert_update_db(array):
+def insert_update_db(array, config):
     print('Start input db ', len(array))
-    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like '"+settings.SENSOR_NAME_QUERY+"'")
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like '"+config['SENSOR_NAME_QUERY']+"'")
 
     for sensor in sensors:
         sensor['list'] = []
 
         for arr in array:
-            # if sensor["NAME"] in UNIT2_INPUT_COLS:
+            if sensor["NAME"] in config['LSTM_TARGET_COLS']:
                 if sensor["NAME"] == arr["Name"]:
                     ts = arr["Timestamp"]
                     # Ensure timezone-aware and format to ISO 8601 with 'Z'
@@ -151,17 +151,13 @@ def insert_update_db(array):
                 query, params = build_merge_query(settings.TABLE_PREDICTIONS, sensor["ID"], chunk)
                 execute_query(query, params)
 
-async def prepare_data_input(days: int = 7):
-    print(days)
-    now = datetime.now()
-
-    if settings.TIME_PRETEND != "":
-        now = datetime.strptime(settings.TIME_PRETEND, "%Y-%m-%d %H:%M:%S")
+def prepare_data_input(config, task):
+    now = datetime.strptime(task['START_AT'].strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
 
     date_to = now.strftime("%Y-%m-%d")
-    date_from = (now - timedelta(days=days)).strftime("%Y-%m-%d")
+    date_from = (now - timedelta(days=config['LSTM_PREPARE_DATA'])).strftime("%Y-%m-%d")
     print('date from ', date_from, ' date to ', date_to)
-    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like '"+settings.SENSOR_NAME_QUERY+"'")
+    sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME like '"+config['SENSOR_NAME_QUERY']+"'")
     input_sensors_ids = []
     print('sensors count: ', len(sensors))
 

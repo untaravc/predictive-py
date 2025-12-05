@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     UPLOAD_PREDICT_DAYS: int=7
 
     # Berapa task RECORD yang dikerjakan salam satu schedule. rekemdasi 5
-    RECORD_PER_SESSION: int=4
+    RECORD_PER_SESSION: int=8
 
     # Berapa task UPLOAD yang dikerjakan salam satu schedule. rekemdasi 1
     UPLOAD_PERSESION: int=1
@@ -92,7 +92,6 @@ class Settings(BaseSettings):
     CRON_EXECUTE_RECORD_API: str = "* * * * *" # Default per menit akan menjalankan task download sesuai RECORD_PER_SESSION
     CRON_EXECUTE_PREDICT: str = "0 0 * * *" # Default per jam akan menjalankan predict
     CRON_EXECUTE_UPLOAD: str = "*/10 * * * *" # Default per 10 menit akan menjalankan upload sesuai UPLOAD_PERSESION
-    CRON_EXECUTE_UPLOAD_MAX: str = "* * * * *" # Default: Pembuatan task per menit
 
     class Config:
         env_file = ".env"

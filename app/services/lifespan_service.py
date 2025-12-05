@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from app.services.task_service import create_task_record, create_task_predict, create_task_upload, task_delete
-from app.services.task_execute_service import execute_record_api, execute_upload, execute_predict, execute_upload_max
+from app.services.task_execute_service import execute_record_api, execute_predict, execute_upload_queue
 from dotenv import load_dotenv
 from app.configs.base_conf import settings
 
@@ -45,38 +45,21 @@ def lifespan(app: FastAPI):
                 replace_existing=True
             )
 
-        if not scheduler.get_job("execute_predict"):
-            scheduler.add_job(
-                execute_predict,
-                CronTrigger.from_crontab(settings.CRON_EXECUTE_PREDICT),
-                id="execute_predict",
-                replace_existing=True
-            )
+        # if not scheduler.get_job("execute_predict"):
+        #     scheduler.add_job(
+        #         execute_predict,
+        #         CronTrigger.from_crontab(settings.CRON_EXECUTE_PREDICT),
+        #         id="execute_predict",
+        #         replace_existing=True
+        #     )
 
         if not scheduler.get_job("execute_upload"):
             scheduler.add_job(
-                execute_upload,
+                execute_upload_queue,
                 CronTrigger.from_crontab(settings.CRON_EXECUTE_UPLOAD),
                 id="execute_upload",
                 replace_existing=True
             )
-
-        
-        if not scheduler.get_job("create_task_upload_max"):
-            scheduler.add_job(
-                execute_upload_max,
-                CronTrigger.from_crontab(settings.CRON_EXECUTE_UPLOAD_MAX),
-                id="create_task_upload",
-                replace_existing=True
-            )
-        
-        # if not scheduler.get_job("create_delete_task"):
-        #     scheduler.add_job(
-        #         create_delete_task,
-        #         CronTrigger.from_crontab("* * * * *"),
-        #         id="create_delete_task",
-        #         replace_existing=True
-        #     )
         
         print("🚀 Scheduler started")
 

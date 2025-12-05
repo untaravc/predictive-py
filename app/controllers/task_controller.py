@@ -1,4 +1,4 @@
-from app.services.task_execute_service import execute_record_sample, execute_predict, execute_record_api, execute_upload, execute_prescriptive, execute_upload_prescriptive, execute_upload_max
+from app.services.task_execute_service import execute_record_sample, execute_predict, execute_record_api, execute_upload2, execute_prescriptive, execute_upload_prescriptive, execute_upload_max
 from app.services.task_service import create_task_record, create_task_predict, create_task_upload, task_delete, update_vibration, create_task_prescriptive, create_task_upload_max
 from fastapi import Request
 async def action_create_task_record():
@@ -73,7 +73,7 @@ async def action_execute_prescriptive():
     }
 
 async def action_execute_upload():
-    result = await execute_upload()
+    result = await execute_upload2()
     return {
         "success": True,
         "result": result

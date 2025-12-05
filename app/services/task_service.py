@@ -122,14 +122,14 @@ def create_task_upload():
     units = ["1", "2", "3", "4"]
 
     for unit in units:
-        config = lgbm_config(unit)
-        for sensor in sensors:
-            if sensor['NAME'] in config['TARGET_COLS']:
-                timestamps = generate_timestamps(start, end, settings.UPLOAD_TIME_PERIOD, 0)
-                query, params = build_insert_many(timestamps, sensor["ID"], "upload")
+        # config = lgbm_config(unit)
+        # for sensor in sensors:
+        #     if sensor['NAME'] in config['TARGET_COLS']:
+            timestamps = generate_timestamps(start, end, settings.UPLOAD_TIME_PERIOD, 0)
+            query, params = build_insert_many(timestamps, unit, "upload")
 
-                execute_query(query, params)
-                write_log("create_task_predict", "Create task upload " + sensor["NAME"])
+            execute_query(query, params)
+            write_log("create_task_predict", "Create task upload: " + unit)
 
     return "Success"
 

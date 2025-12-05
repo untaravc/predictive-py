@@ -8,10 +8,11 @@ from osisoft.pidevclub.piwebapi.models import PIStreamValues, PITimedValue
 from app.configs.base_conf import settings
 from app.predictions.prescriptive import run_prescriptive
 from app.utils.helper import chunk_list
-from app.predictions.unit1_v1 import run_unit1_lstm_final
+from app.predictions.lstm import run_lstm
 from app.predictions.lgbm import run_lgbm
 from app.utils.logger import write_log, gen_key
 from app.utils.pi_vision import getPIWebApiClient
+from app.configs.unit_config import unit_config
 
 async def execute_record_sample():
     tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'record' AND START_AT < SYSDATE FETCH FIRST 5 ROWS ONLY")
@@ -34,25 +35,21 @@ async def execute_record_api():
     write_log("execute_record_api", "tasks found: " + str(len(tasks)))
     for task in tasks:
         sensor = fetch_one("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE ID = :id", {"id": task["PARAMS"]})
-        startTime = 't-'+ str(settings.RECORD_BACK_DATE) +'d'
-        endTime = '*'
+
+        target = datetime.strptime(task["START_AT"].strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
+        now = datetime.now()
+        selisih = now - target
+        hari = selisih.days
+
+        startTime = 't-' + str(hari + settings.RECORD_BACK_DATE) + 'd'
+        endTime = 't-' + str(hari) + 'd'
         interval = '5m'
-
-        if settings.TIME_PRETEND != "":
-            target = datetime.strptime(task["START_AT"].strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S")
-            now = datetime.now()
-            selisih = now - target
-            hari = selisih.days
-
-            startTime = 't-' + str(hari + settings.RECORD_BACK_DATE) + 'd'
-            endTime = 't-' + str(hari) + 'd'
-            interval = '5m'
 
         url = settings.INTERPOLATED_URL + sensor["WEB_ID"] + "/interpolated?startTime=" + startTime + "&endTime=" + endTime + "&interval=" + interval
         result = await fetch_data_with_basic_auth(url)
         
         if result['success'] == False:
-            write_log("execute_record_api", "API error: " + url )
+            write_log("execute_record_api", "ERROR: " + str(result), task["ID"], "ERROR")
             execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
             continue
 
@@ -92,9 +89,9 @@ async def execute_predict():
 
     for task in tasks:
         write_log("execute_predict", "Generating predict for unit: " + task["PARAMS"])
-        # await run_unit1_lstm_final()
-        run_lgbm(task)
-        execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        run_lstm(task)
+        # run_lgbm(task)
+        # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
 
@@ -109,6 +106,21 @@ async def execute_prescriptive():
         # execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
     return 'Predict completed'
+
+async def execute_upload_queue():
+    print('Start execute_upload_queue')
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND START_AT < SYSDATE ORDER BY START_AT FETCH FIRST " + str(settings.UPLOAD_PERSESION) + " ROWS ONLY")
+
+    for task in tasks:
+        print("Generating upload for unit: ", task["PARAMS"])
+        if task["CATEGORY"] == 'upload':
+            execute_upload2(task)
+        elif task["CATEGORY"] == 'upload_max':
+            execute_upload_max()
+        elif task["CATEGORY"] == 'prescriptive':
+            run_prescriptive(task)
+
+    return 'Upload completed'
 
 async def execute_upload():
     log_key = gen_key()
@@ -159,6 +171,88 @@ async def execute_upload():
             execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
         except:
             execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+
+async def execute_upload2():
+    log_key = gen_key()
+    write_log("execute_upload", "Start execute_upload", log_key)
+    # Run Over TASK
+    tasks = fetch_all("SELECT * FROM "+ settings.TABLE_TASKS +" WHERE is_complete = 0 AND category = 'upload' AND START_AT < SYSDATE ORDER BY START_AT FETCH FIRST " + str(settings.UPLOAD_PERSESION) + " ROWS ONLY")
+
+    for task in tasks:
+        config = unit_config(task["PARAMS"])
+        sensors = fetch_all("SELECT * FROM "+ settings.TABLE_SENSORS +" WHERE NAME LIKE '"+ config["SENSOR_NAME_QUERY"] +"'")
+
+        startTime = task["START_AT"].strftime("%Y-%m-%d %H:%M:%S")
+        endTime = (task["START_AT"] + timedelta(days=settings.UPLOAD_PREDICT_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+        write_log("execute_upload","Start time " + startTime + " end time " + endTime, log_key)
+
+        sensor_predictions = []
+        sensor_predictions_ids = []
+        sensor_upload = []
+        
+        for sensor in sensors:
+            if sensor['NAME'] in config['SENSOR_PREDICTION']:
+                sensor_predictions.append(sensor)
+                sensor_predictions_ids.append(sensor['ID'])
+
+            if sensor['NAME'] in config['SENSOR_UPLOAD']:
+                sensor_upload.append(sensor)
+
+        predictions = fetch_all("SELECT * FROM "+ settings.TABLE_PREDICTIONS +" WHERE SENSOR_ID IN (" + ','.join(map(str, sensor_predictions_ids)) + ") "  + " AND RECORD_TIME >= TO_DATE('" + startTime + "', 'YYYY-MM-DD HH24:MI:SS') AND RECORD_TIME <= TO_DATE('" + endTime + "', 'YYYY-MM-DD HH24:MI:SS')")
+        
+        for sensor in sensor_predictions:
+            sensor['predictions'] = []
+            for prediction in predictions:
+                if prediction['SENSOR_ID'] == sensor['ID']:
+                    sensor['predictions'].append(prediction)
+            write_log('execute_upload', sensor['NAME'] + " predictions: " + str(len(predictions)))
+        
+        # try:
+        #     path = f"\\\\PI1\{sensor['NAME']}.prediksi"
+        #     point1 = client.point.get_by_path(path, None)
+        # except:
+        #     write_log("execute_upload","Point not found", log_key)
+        #     execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        #     continue
+        streamValues = list()
+
+        for prediction in sensor_predictions:
+            streamValue = PIStreamValues()
+            
+            selected_sensor_prediction = None
+            for upload in sensor_upload:
+                if upload['NAME'] == prediction['NAME'] + ".prediksi":
+                    selected_sensor_prediction = upload
+
+            if selected_sensor_prediction == None:
+                write_log("execute_upload","Point not found", log_key, 'ERROR')
+                continue
+
+            write_log("execute_upload","Web ID Found: " + str(selected_sensor_prediction['WEB_ID'] + " | Sensor Name: " + selected_sensor_prediction['NAME']), log_key)
+            streamValue.web_id = selected_sensor_prediction['WEB_ID']
+
+            values = list()
+            total_data = len(prediction['predictions'])
+
+            for i in range(total_data):
+                value = PITimedValue()
+                value.value = prediction['predictions'][i]["VALUE"]
+                value.timestamp = prediction['predictions'][i]["RECORD_TIME"].strftime("%Y-%m-%dT%H:%M:%SZ")
+                values.append(value)
+
+            streamValue.items = values
+
+            streamValues.append(streamValue)
+            write_log("execute_upload","Sensor Name: " + selected_sensor_prediction['NAME'] + " | Prediction data: " + str(total_data) + " | Items " + str(len(values)), log_key)
+
+        # try:
+        #     client = getPIWebApiClient()
+        #     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        #     response = client.streamSet.update_values_ad_hoc_with_http_info(streamValues, None, None)
+        #     write_log("execute_upload","Response: " + str(response), log_key)
+        #     execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 1, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
+        # except:
+        #     execute_query("UPDATE "+ settings.TABLE_TASKS +" SET is_complete = 2, UPDATED_AT = SYSDATE WHERE id = :id", {"id": task["ID"]})
 
 async def execute_upload_prescriptive():
     print('Start execute_upload_prescriptive')
