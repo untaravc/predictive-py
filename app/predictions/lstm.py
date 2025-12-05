@@ -40,10 +40,10 @@ def run_lstm(task):
     df = df.interpolate(method="time", limit_direction="both").ffill().bfill()
 
     # Ambil 100 baris data terakhir (sesuai TIMESTEPS)
-    if len(df) < config["LSTM_TIMESTEPS"]:
-        raise ValueError(f"Data tidak cukup. Butuh minimal {config["LSTM_TIMESTEPS"]} baris, tapi hanya ada {len(df)}.")
+    if len(df) < config['LSTM_TIMESTEPS']:
+        raise ValueError(f"Data tidak cukup. Butuh minimal {config['LSTM_TIMESTEPS']} baris, tapi hanya ada {len(df)}.")
 
-    last_window_df = df[config['LSTM_INPUT_COLS']].iloc[-config["LSTM_TIMESTEPS"]:]
+    last_window_df = df[config['LSTM_INPUT_COLS']].iloc[-config['LSTM_TIMESTEPS']:]
     print(f"Menggunakan data dari {last_window_df.index.min()} hingga {last_window_df.index.max()} untuk prediksi.")
 
     # --- 3. Normalisasi dan Reshape Input ---
@@ -55,7 +55,7 @@ def run_lstm(task):
 
     input_for_model = np.expand_dims(last_window_scaled, axis=0)
     print("Input shape for model:", input_for_model.shape)
-    print("Input shape should be model: 1," + str(config["LSTM_TIMESTEPS"]) + "," + str(len(config['LSTM_INPUT_COLS'])))
+    print("Input shape should be model: 1," + str(config['LSTM_TIMESTEPS']) + "," + str(len(config['LSTM_INPUT_COLS'])))
 
     # # --- 4. Lakukan Prediksi ---
     # print("Making prediction...")
@@ -73,9 +73,9 @@ def run_lstm(task):
     # Buat DataFrame untuk hasil prediksi agar mudah dibaca
     last_timestamp = last_window_df.index[-1]
     # Asumsikan frekuensi data adalah 5 menit ("5T")
-    forecast_timestamps = pd.date_range(start=last_timestamp, periods=settings.HORIZON + 1, freq="5min")[1:]
+    forecast_timestamps = pd.date_range(start=last_timestamp, periods=config['LSTM_HORIZON'] + 1, freq="5min")[1:]
 
-    forecast_df = pd.DataFrame(prediction_original_scale, index=forecast_timestamps, columns=config['LSTM_INPUT_COLS'])
+    forecast_df = pd.DataFrame(prediction_original_scale, index=forecast_timestamps, columns=config['LSTM_TARGET_COLS'])
 
     forecast_df_corrected = forecast_df 
     try:
@@ -108,7 +108,7 @@ def run_lstm(task):
         print(f"\n--- WARNING: Gagal menerapkan koreksi ---")
 
     print( "Shape hasil prediksi: ", forecast_df.shape)
-    forecast_df_corrected.to_csv(os.path.join(settings.OUTPUT_DIR, "results_"+ version +".csv"), index=True, float_format='%.6f')
+    forecast_df_corrected.to_csv(os.path.join(config['LSTM_OUTPUT_DIR'], "results_"+ version +".csv"), index=True, float_format='%.6f')
 
     # Reset index so timestamp becomes a column
     df_reset = forecast_df_corrected.reset_index().rename(columns={"index": "Timestamp"})
